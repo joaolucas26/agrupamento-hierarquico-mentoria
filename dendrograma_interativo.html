@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrupamento Hierárquico Interativo | Simulador para Apresentação</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #151d30;
+            --bg-card-hover: #1e2942;
+            --border: #2a3756;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-cyan: #06b6d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(180deg, #162035 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        select, button {
+            background-color: #1e2942;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: #475569;
+            background-color: #273656;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        button.btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        button.btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+        }
+
+        button.btn-danger {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        button.btn-danger:hover {
+            background-color: rgba(239, 68, 68, 0.25);
+            border-color: var(--accent-red);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .slider-val {
+            font-family: monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #93c5fd;
+            min-width: 44px;
+        }
+
+        /* MAIN CONTENT LAYOUT */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-body {
+            position: relative;
+            flex: 1;
+            min-height: 440px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0d1322;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        svg.dendrogram-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* DYNAMIC MATRIX PANEL */
+        .matrix-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin: 0 24px 20px 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .matrix-header {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .matrix-badges {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .matrix-badge {
+            background: #1e2942;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .matrix-badge strong {
+            color: #f8fafc;
+        }
+
+        .matrix-table-container {
+            overflow-x: auto;
+            padding: 16px;
+            max-height: 350px;
+            background: #0d1322;
+        }
+
+        table.dist-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        table.dist-matrix th, table.dist-matrix td {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        table.dist-matrix th {
+            background: #1e2942;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        table.dist-matrix td.diag {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+        }
+
+        table.dist-matrix td.min-cell {
+            background: rgba(245, 158, 11, 0.25) !important;
+            border: 2px solid #f59e0b !important;
+            color: #fef3c7 !important;
+            font-weight: 800;
+            animation: pulse-glow 1.5s infinite;
+        }
+
+        table.dist-matrix td.split-target {
+            background: rgba(139, 92, 246, 0.25) !important;
+            border: 2px solid #8b5cf6 !important;
+            color: #ede9fe !important;
+            font-weight: 800;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.8); }
+            100% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.4); }
+        }
+
+        .cluster-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            background: #1e2942;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cluster-color-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .strategy-info-banner {
+            padding: 10px 16px;
+            background: rgba(59, 130, 246, 0.08);
+            border-top: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* METRICS BAR */
+        .metrics-bar {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 12px 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-card .title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-card .value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-family: monospace;
+        }
+
+        .metric-card .desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* NARRATIVE FOOTER / LOG */
+        .log-box {
+            background: #080c14;
+            border-top: 1px solid var(--border);
+            padding: 8px 24px;
+            font-family: monospace;
+            font-size: 0.78rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* TOOLTIP */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #475569;
+            color: #ffffff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+                <path d="M12 3v6m0 0l-4 4m4-4l4 4M4 17h16M4 21h16"/>
+            </svg>
+            <h1>Agrupamento Hierárquico: Simulador & Dendrograma</h1>
+            <span class="header-badge">Didático & Interativo</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+            Clique no plano 2D para adicionar pontos • Mova a linha de corte
+        </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="control-group">
+            <span class="control-label">Estratégia:</span>
+            <select id="strategySelect">
+                <option value="bottom-up">Bottom-Up (Aglomerativo - AGNES)</option>
+                <option value="top-down">Top-Down (Divisivo - DIANA / Bisecting)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Preset:</span>
+            <select id="presetSelect">
+                <option value="blobs">3 Grupos Bem Separados</option>
+                <option value="didactic5">Exemplo Didático (5 Pontos do Manual)</option>
+                <option value="chaining">Efeito Chaining (Ponte de Ruído)</option>
+                <option value="outlier">Outlier Desafiador</option>
+                <option value="random">Distribuição Aleatória (25 pts)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Método de Ligação:</span>
+            <select id="linkageSelect">
+                <option value="ward">Ward's Method (Mínima Variância)</option>
+                <option value="complete">Complete Linkage (Máxima Distância)</option>
+                <option value="average">Average Linkage (Média UPGMA)</option>
+                <option value="single">Single Linkage (Vizinho Mais Próximo)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Métrica:</span>
+            <select id="metricSelect">
+                <option value="euclidean">Euclidiana (L2)</option>
+                <option value="manhattan">Manhattan (L1)</option>
+            </select>
+        </div>
+
+        <div class="control-group slider-container">
+            <span class="control-label">Linha de Corte (H):</span>
+            <input type="range" id="cutoffSlider" min="0" max="100" value="45">
+            <span id="cutoffVal" class="slider-val">4.50</span>
+        </div>
+
+        <div class="control-group" style="margin-left: auto;">
+            <button id="prevStepBtn" title="Voltar uma iteração (Atalho: Seta Esquerda ←)">◀ Voltar</button>
+            <button id="stepBtn" class="btn-primary" title="Avançar uma iteração (Atalho: Seta Direita →)">Avançar ▶</button>
+            <button id="resetStepBtn" title="Resetar para o dendrograma completo">↺ Reset</button>
+            <button id="clearBtn" class="btn-danger">Limpar</button>
+        </div>
+    </div>
+
+    <!-- MAIN PANELS: 2D SCATTER & DENDROGRAM -->
+    <div class="main-layout">
+        <!-- 2D SCATTER PANEL -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                        <circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="16" cy="16" r="3"/>
+                    </svg>
+                    Espaço Amostral 2D (Features X₁ e X₂)
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    Total de Observações: <strong id="pointCount" style="color: var(--text-primary)">0</strong>
+                </div>
+            </div>
+            <div class="panel-body" id="canvasContainer">
+                <canvas id="scatterCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- DENDROGRAM PANEL -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2">
+                        <path d="M5 20V12h14v8M12 12V4"/>
+                    </svg>
+                    Dendrograma de Fusão Hierárquica
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    Clusters Ativos: <strong id="activeClustersBadge" style="color: #60a5fa;">3</strong>
+                </div>
+            </div>
+            <div class="panel-body" id="dendroContainer">
+                <svg id="dendrogramSvg" class="dendrogram-svg"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- DYNAMIC DISTANCE MATRIX PANEL -->
+    <div class="matrix-panel">
+        <div class="matrix-header">
+            <div class="panel-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+                </svg>
+                Matriz Dinâmica de Dissimilaridade & Grupos Ativos
+            </div>
+            <div class="matrix-badges">
+                <span class="matrix-badge">Estratégia: <strong id="matrixStrategyBadge">Bottom-Up</strong></span>
+                <span class="matrix-badge">Dimensão: <strong id="matrixDimBadge">0 × 0</strong></span>
+                <span class="matrix-badge">Próxima Ação: <strong id="matrixNextActionBadge" style="color: #f59e0b;">—</strong></span>
+            </div>
+        </div>
+
+        <div class="matrix-table-container" id="matrixTableContainer">
+            <!-- Dynamic table inserted via JavaScript -->
+        </div>
+
+        <div class="strategy-info-banner" id="strategyInfoBanner">
+            <span>💡 <strong>Estratégia Bottom-Up:</strong> A cada passo, a menor dissimilaridade na matriz é localizada, fundindo 2 grupos e reduzindo a dimensão da matriz em 1 linha e 1 coluna.</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Clique nas células para inspecionar</span>
+        </div>
+    </div>
+
+    <!-- METRICS FOOTER -->
+    <div class="metrics-bar">
+        <div class="metric-card">
+            <span class="title">Clusters Formados (k)</span>
+            <span class="value" id="metricK" style="color: #60a5fa;">3</span>
+            <span class="desc">Definido pela altura da linha de corte</span>
+        </div>
+
+        <div class="metric-card">
+            <span class="title">Correlação Cofenética (CPCC)</span>
+            <span class="value" id="metricCpcc" style="color: #10b981;">0.982</span>
+            <span class="desc">Preservação das distâncias reais na árvore</span>
+        </div>
+
+        <div class="metric-card">
+            <span class="title">Coeficiente de Silhueta Médio</span>
+            <span class="value" id="metricSil" style="color: #f59e0b;">0.741</span>
+            <span class="desc">Qualidade e separação dos clusters formados</span>
+        </div>
+
+        <div class="metric-card">
+            <span class="title">Diagnóstico para a Apresentação</span>
+            <span class="value" id="metricStatus" style="font-size: 0.95rem; font-weight: 700; color: #a78bfa;">Estrutura Ótima</span>
+            <span class="desc" id="metricAdvice">Corte adequado em ramo vertical longo</span>
+        </div>
+    </div>
+
+    <!-- LOG STATUS -->
+    <div class="log-box">
+        <span class="log-status"></span>
+        <span id="logText">Pronto. Adicione pontos ou selecione um preset para demonstrar na palestra.</span>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // ==========================================
+        // PALETA DE CORES PARA APRESENTAÇÃO
+        // ==========================================
+        const CLUSTER_COLORS = [
+            '#3b82f6', // Azul
+            '#10b981', // Verde esmeralda
+            '#f59e0b', // Âmbar
+            '#ec4899', // Rosa vibrante
+            '#8b5cf6', // Roxo
+            '#06b6d4', // Ciano
+            '#f97316', // Laranja
+            '#14b8a6', // Teal
+            '#e11d48', // Carmim
+            '#84cc16'  // Lima
+        ];
+        const COLOR_UNASSIGNED = '#64748b';
+
+        // ==========================================
+        // ESTADO GLOBAL DA APLICAÇÃO
+        // ==========================================
+        let points = []; // [{id, x, y, cluster}]
+        let currentStrategy = 'bottom-up'; // 'bottom-up' ou 'top-down'
+        let linkageMethod = 'ward';
+        let distanceMetric = 'euclidean';
+        let cutoffHeight = 4.5;
+        let maxTreeHeight = 10;
+        let mergeHistory = []; // Registro de fusões (Bottom-Up)
+        let splitHistory = []; // Registro de divisões (Top-Down)
+        let stepIndex = -1; // -1 significa visão final / corte contínuo
+
+        // Elementos DOM
+        const canvas = document.getElementById('scatterCanvas');
+        const ctx = canvas.getContext('2d');
+        const dendroSvg = document.getElementById('dendrogramSvg');
+        const cutoffSlider = document.getElementById('cutoffSlider');
+        const cutoffVal = document.getElementById('cutoffVal');
+        const pointCountEl = document.getElementById('pointCount');
+        const activeClustersBadge = document.getElementById('activeClustersBadge');
+        const metricK = document.getElementById('metricK');
+        const metricCpcc = document.getElementById('metricCpcc');
+        const metricSil = document.getElementById('metricSil');
+        const metricStatus = document.getElementById('metricStatus');
+        const metricAdvice = document.getElementById('metricAdvice');
+        const logText = document.getElementById('logText');
+        const tooltip = document.getElementById('tooltip');
+
+        // Elementos da Matriz
+        const matrixTableContainer = document.getElementById('matrixTableContainer');
+        const matrixStrategyBadge = document.getElementById('matrixStrategyBadge');
+        const matrixDimBadge = document.getElementById('matrixDimBadge');
+        const matrixNextActionBadge = document.getElementById('matrixNextActionBadge');
+        const strategyInfoBanner = document.getElementById('strategyInfoBanner');
+
+        // ==========================================
+        // INICIALIZAÇÃO E RESPONSIVIDADE
+        // ==========================================
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            recalculateAndRender();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==========================================
+        // PRESETS DIDÁTICOS PARA A PALESTRA
+        // ==========================================
+        function loadPreset(presetName) {
+            const w = canvas.width || 500;
+            const h = canvas.height || 440;
+            const cx = w / 2;
+            const cy = h / 2;
+            points = [];
+
+            if (presetName === 'blobs') {
+                // 3 grupos gaussianos bem separados
+                createGaussianBlob(cx - w * 0.25, cy - h * 0.18, 9, 30);
+                createGaussianBlob(cx + w * 0.25, cy - h * 0.18, 9, 30);
+                createGaussianBlob(cx, cy + h * 0.22, 9, 32);
+                setLog("Preset: 3 Grupos Esféricos carregado. Excelente para demonstrar o corte e as matrizes.");
+            } else if (presetName === 'didactic5') {
+                // Exemplo Didático idêntico ao resolvido na Seção 6 do Guia Markdown!
+                // Pontos equivalentes a A:2, B:3, C:8, D:13, E:14
+                const baseY = cy;
+                const scale = Math.min(w / 20, 28);
+                const startX = cx - (7 * scale);
+                const coords1D = [2, 3, 8, 13, 14];
+                coords1D.forEach((val, idx) => {
+                    points.push({
+                        id: idx,
+                        label: ['A', 'B', 'C', 'D', 'E'][idx],
+                        x: startX + val * scale,
+                        y: baseY,
+                        cluster: 0
+                    });
+                });
+                setLog("Preset Didático (5 Pontos do Manual) carregado: A(2), B(3), C(8), D(13), E(14). Perfeito para acompanhar a matriz reduzindo!");
+            } else if (presetName === 'chaining') {
+                // Dois aglomerados unidos por uma linha estreita de pontos (ponte)
+                createGaussianBlob(cx - w * 0.28, cy, 10, 24);
+                createGaussianBlob(cx + w * 0.28, cy, 10, 24);
+                // Ponte de ruído
+                const steps = 6;
+                for (let i = 1; i <= steps; i++) {
+                    const frac = i / (steps + 1);
+                    const px = (cx - w * 0.28) * (1 - frac) + (cx + w * 0.28) * frac;
+                    const py = cy + (Math.random() - 0.5) * 12;
+                    points.push({ id: points.length, x: px, y: py, cluster: 0 });
+                }
+                setLog("Preset: Efeito Chaining carregado! Alterne para Single Linkage para ver a fusão errônea pela ponte.");
+            } else if (presetName === 'outlier') {
+                // 2 grupos densos + 1 outlier isolado bem afastado
+                createGaussianBlob(cx - w * 0.18, cy, 11, 26);
+                createGaussianBlob(cx + w * 0.18, cy, 11, 26);
+                // Outlier no topo
+                points.push({ id: points.length, x: cx, y: cy - h * 0.38, cluster: 0 });
+                setLog("Preset: Outlier Isolado carregado. Note o ramo isolado de grande altura.");
+            } else if (presetName === 'random') {
+                for (let i = 0; i < 20; i++) {
+                    points.push({
+                        id: i,
+                        x: w * 0.1 + Math.random() * (w * 0.8),
+                        y: h * 0.1 + Math.random() * (h * 0.8),
+                        cluster: 0
+                    });
+                }
+                setLog("Preset: 20 pontos aleatórios gerados.");
+            }
+            stepIndex = -1;
+            recalculateAndRender();
+        }
+
+        function createGaussianBlob(meanX, meanY, count, std) {
+            for (let i = 0; i < count; i++) {
+                const u1 = Math.max(1e-6, Math.random());
+                const u2 = Math.random();
+                const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+                const z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+                points.push({
+                    id: points.length,
+                    x: meanX + z0 * std,
+                    y: meanY + z1 * std,
+                    cluster: 0
+                });
+            }
+        }
+
+        // ==========================================
+        // CÁLCULO DE DISTÂNCIA
+        // ==========================================
+        function calcDist(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            if (distanceMetric === 'manhattan') {
+                return Math.abs(dx) + Math.abs(dy);
+            }
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // ==========================================
+        // ALGORITMO AGLOMERATIVO (BOTTOM-UP)
+        // ==========================================
+        function buildBottomUpTree() {
+            const N = points.length;
+            if (N < 2) {
+                mergeHistory = [];
+                return null;
+            }
+
+            let activeClusters = points.map((p, idx) => ({
+                id: idx,
+                name: p.label ? p.label : `P${idx}`,
+                members: [idx],
+                isLeaf: true,
+                point: p,
+                height: 0,
+                left: null,
+                right: null,
+                centroid: { x: p.x, y: p.y }
+            }));
+
+            mergeHistory = [];
+            let nextClusterId = N;
+
+            // Histórico inicial (Passo 0: N clusters de 1 ponto)
+            mergeHistory.push({
+                step: 0,
+                activeClusters: activeClusters.map(c => ({ ...c, members: [...c.members] })),
+                mergedA: null,
+                mergedB: null,
+                distance: 0,
+                actionDescription: `Inicialização: ${N} clusters unitários individuais.`
+            });
+
+            // Executa N - 1 fusões
+            for (let step = 0; step < N - 1; step++) {
+                let minDistance = Infinity;
+                let bestI = -1;
+                let bestJ = -1;
+
+                for (let i = 0; i < activeClusters.length; i++) {
+                    for (let j = i + 1; j < activeClusters.length; j++) {
+                        const dist = clusterDistance(activeClusters[i], activeClusters[j], linkageMethod);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestI = i;
+                            bestJ = j;
+                        }
+                    }
+                }
+
+                if (bestI === -1 || bestJ === -1) break;
+
+                const cA = activeClusters[bestI];
+                const cB = activeClusters[bestJ];
+
+                const totalMembers = cA.members.length + cB.members.length;
+                const newCentroid = {
+                    x: (cA.centroid.x * cA.members.length + cB.centroid.x * cB.members.length) / totalMembers,
+                    y: (cA.centroid.y * cA.members.length + cB.centroid.y * cB.members.length) / totalMembers
+                };
+
+                const mergedNode = {
+                    id: nextClusterId++,
+                    name: `(${cA.name}, ${cB.name})`,
+                    members: [...cA.members, ...cB.members],
+                    isLeaf: false,
+                    height: minDistance,
+                    left: cA,
+                    right: cB,
+                    centroid: newCentroid
+                };
+
+                // Remove os dois fundidos e insere o novo
+                activeClusters.splice(Math.max(bestI, bestJ), 1);
+                activeClusters.splice(Math.min(bestI, bestJ), 1);
+                activeClusters.push(mergedNode);
+
+                mergeHistory.push({
+                    step: step + 1,
+                    activeClusters: activeClusters.map(c => ({ ...c, members: [...c.members] })),
+                    mergedA: cA,
+                    mergedB: cB,
+                    mergedNode: mergedNode,
+                    distance: minDistance,
+                    actionDescription: `Fundido ${cA.name} com ${cB.name} (Distância: ${minDistance.toFixed(2)}).`
+                });
+            }
+
+            return activeClusters[0] || null;
+        }
+
+        // ==========================================
+        // ALGORITMO DIVISIVO (TOP-DOWN / BISECTING)
+        // ==========================================
+        function buildTopDownTree() {
+            const N = points.length;
+            if (N < 2) {
+                splitHistory = [];
+                return null;
+            }
+
+            // Cluster raiz contendo todos os pontos
+            const allMembers = points.map((_, idx) => idx);
+            const rootCentroid = {
+                x: points.reduce((acc, p) => acc + p.x, 0) / N,
+                y: points.reduce((acc, p) => acc + p.y, 0) / N
+            };
+
+            const root = {
+                id: 0,
+                name: 'Todos',
+                members: allMembers,
+                isLeaf: false,
+                height: calculateClusterDiameter(allMembers),
+                left: null,
+                right: null,
+                centroid: rootCentroid
+            };
+
+            splitHistory = [];
+            let currentClusters = [root];
+
+            splitHistory.push({
+                step: 0,
+                activeClusters: [root],
+                splitCluster: null,
+                actionDescription: `Início Top-Down: Todos os ${N} pontos em 1 único macro-cluster.`
+            });
+
+            // Divide recursivamente até que todos os clusters tenham 1 ponto
+            for (let step = 0; step < N - 1; step++) {
+                // Encontra o cluster de maior diâmetro/dispersão que ainda tem > 1 membro
+                let maxDiameter = -1;
+                let splitIdx = -1;
+
+                for (let i = 0; i < currentClusters.length; i++) {
+                    const c = currentClusters[i];
+                    if (c.members.length > 1) {
+                        const diam = calculateClusterDiameter(c.members);
+                        if (diam > maxDiameter) {
+                            maxDiameter = diam;
+                            splitIdx = i;
+                        }
+                    }
+                }
+
+                if (splitIdx === -1) break;
+
+                const target = currentClusters[splitIdx];
+                // Biparticiona target.members usando Bisecting 2-Means
+                const [membersL, membersR] = bisectCluster2Means(target.members);
+
+                const cL = {
+                    id: currentClusters.length + 1,
+                    name: `G${currentClusters.length + 1}`,
+                    members: membersL,
+                    isLeaf: membersL.length === 1,
+                    height: membersL.length === 1 ? 0 : calculateClusterDiameter(membersL),
+                    left: null,
+                    right: null,
+                    centroid: computeMembersCentroid(membersL)
+                };
+
+                const cR = {
+                    id: currentClusters.length + 2,
+                    name: `G${currentClusters.length + 2}`,
+                    members: membersR,
+                    isLeaf: membersR.length === 1,
+                    height: membersR.length === 1 ? 0 : calculateClusterDiameter(membersR),
+                    left: null,
+                    right: null,
+                    centroid: computeMembersCentroid(membersR)
+                };
+
+                target.left = cL;
+                target.right = cR;
+
+                currentClusters.splice(splitIdx, 1, cL, cR);
+
+                splitHistory.push({
+                    step: step + 1,
+                    activeClusters: currentClusters.map(c => ({ ...c, members: [...c.members] })),
+                    splitCluster: target,
+                    subL: cL,
+                    subR: cR,
+                    diameter: maxDiameter,
+                    actionDescription: `Dividido cluster com diâmetro ${maxDiameter.toFixed(2)} em 2 subgrupos (${membersL.length} e ${membersR.length} pts).`
+                });
+            }
+
+            return root;
+        }
+
+        function calculateClusterDiameter(members) {
+            if (members.length < 2) return 0;
+            let maxD = 0;
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    const d = calcDist(points[members[i]], points[members[j]]);
+                    if (d > maxD) maxD = d;
+                }
+            }
+            return maxD;
+        }
+
+        function computeMembersCentroid(members) {
+            const sumX = members.reduce((acc, idx) => acc + points[idx].x, 0);
+            const sumY = members.reduce((acc, idx) => acc + points[idx].y, 0);
+            return { x: sumX / members.length, y: sumY / members.length };
+        }
+
+        function bisectCluster2Means(members) {
+            // Escolhe os 2 pontos mais distantes como centróides iniciais
+            let maxDist = -1;
+            let c1 = points[members[0]];
+            let c2 = points[members[1] || members[0]];
+
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    const d = calcDist(points[members[i]], points[members[j]]);
+                    if (d > maxDist) {
+                        maxDist = d;
+                        c1 = points[members[i]];
+                        c2 = points[members[j]];
+                    }
+                }
+            }
+
+            let groupL = [];
+            let groupR = [];
+
+            // 3 iterações de K-Means para estabilizar a bipartição
+            let cen1 = { x: c1.x, y: c1.y };
+            let cen2 = { x: c2.x, y: c2.y };
+
+            for (let it = 0; it < 3; it++) {
+                groupL = [];
+                groupR = [];
+                for (let idx of members) {
+                    const d1 = calcDist(points[idx], cen1);
+                    const d2 = calcDist(points[idx], cen2);
+                    if (d1 <= d2) groupL.push(idx);
+                    else groupR.push(idx);
+                }
+                if (groupL.length === 0 || groupR.length === 0) break;
+                cen1 = computeMembersCentroid(groupL);
+                cen2 = computeMembersCentroid(groupR);
+            }
+
+            // Garante que nenhum grupo fique vazio
+            if (groupL.length === 0 && groupR.length > 1) {
+                groupL.push(groupR.pop());
+            } else if (groupR.length === 0 && groupL.length > 1) {
+                groupR.push(groupL.pop());
+            }
+
+            return [groupL, groupR];
+        }
+
+        // Dissimilaridade entre clusters conforme o linkage
+        function clusterDistance(c1, c2, method) {
+            const m1 = c1.members;
+            const m2 = c2.members;
+
+            if (method === 'single') {
+                let minD = Infinity;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        const d = calcDist(points[i], points[j]);
+                        if (d < minD) minD = d;
+                    }
+                }
+                return minD;
+            } else if (method === 'complete') {
+                let maxD = -Infinity;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        const d = calcDist(points[i], points[j]);
+                        if (d > maxD) maxD = d;
+                    }
+                }
+                return maxD;
+            } else if (method === 'average') {
+                let sumD = 0;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        sumD += calcDist(points[i], points[j]);
+                    }
+                }
+                return sumD / (m1.length * m2.length);
+            } else if (method === 'ward') {
+                const dx = c1.centroid.x - c2.centroid.x;
+                const dy = c1.centroid.y - c2.centroid.y;
+                const distSq = dx * dx + dy * dy;
+                const factor = (m1.length * m2.length) / (m1.length + m2.length);
+                return Math.sqrt(factor * distSq);
+            }
+            return 0;
+        }
+
+        // ==========================================
+        // CORTE DA ÁRVORE (CLUSTER ASSIGNMENT)
+        // ==========================================
+        function assignClustersByCutoff(root, cutoff) {
+            if (!root) return;
+
+            // Se estiver no modo passo a passo:
+            if (stepIndex >= 0) {
+                if (currentStrategy === 'bottom-up' && stepIndex < mergeHistory.length) {
+                    const state = mergeHistory[stepIndex];
+                    state.activeClusters.forEach((cl, cIdx) => {
+                        cl.members.forEach(pIdx => {
+                            points[pIdx].cluster = cIdx;
+                        });
+                    });
+                } else if (currentStrategy === 'top-down' && stepIndex < splitHistory.length) {
+                    const state = splitHistory[stepIndex];
+                    state.activeClusters.forEach((cl, cIdx) => {
+                        cl.members.forEach(pIdx => {
+                            points[pIdx].cluster = cIdx;
+                        });
+                    });
+                }
+                remapClusterColors();
+                return;
+            }
+
+            // Modo contínuo (corte por altura H)
+            let clusterIdCounter = 1;
+            function traverse(node) {
+                if (!node) return;
+                if (node.isLeaf) {
+                    points[node.id].cluster = clusterIdCounter++;
+                    return;
+                }
+                if (node.height <= cutoff) {
+                    const assignedId = clusterIdCounter++;
+                    node.members.forEach(idx => {
+                        points[idx].cluster = assignedId;
+                    });
+                } else {
+                    traverse(node.left);
+                    traverse(node.right);
+                }
+            }
+
+            traverse(root);
+            remapClusterColors();
+        }
+
+        function remapClusterColors() {
+            const unique = Array.from(new Set(points.map(p => p.cluster)));
+            const map = {};
+            unique.forEach((u, i) => map[u] = i);
+            points.forEach(p => p.clusterColorIndex = map[p.cluster]);
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DA MATRIZ DINÂMICA
+        // ==========================================
+        function renderDynamicDistanceMatrix(activeClusters) {
+            if (!activeClusters || activeClusters.length === 0) {
+                matrixTableContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhum grupo ativo. Adicione pontos para visualizar a matriz.</div>';
+                matrixDimBadge.textContent = '0 × 0';
+                matrixNextActionBadge.textContent = '—';
+                return;
+            }
+
+            const K = activeClusters.length;
+            matrixDimBadge.textContent = `${K} × ${K}`;
+            matrixStrategyBadge.textContent = currentStrategy === 'bottom-up' ? 'Bottom-Up (AGNES)' : 'Top-Down (DIANA)';
+
+            // Limita a exibição visual a 12 grupos para não estourar a tela em apresentações
+            const displayLimit = Math.min(K, 12);
+            const displayedClusters = activeClusters.slice(0, displayLimit);
+
+            // Calcula matriz de distâncias par a par
+            const distMatrix = [];
+            let minVal = Infinity;
+            let minI = -1;
+            let minJ = -1;
+
+            for (let i = 0; i < displayedClusters.length; i++) {
+                distMatrix[i] = [];
+                for (let j = 0; j < displayedClusters.length; j++) {
+                    if (i === j) {
+                        distMatrix[i][j] = 0;
+                    } else {
+                        const d = clusterDistance(displayedClusters[i], displayedClusters[j], linkageMethod);
+                        distMatrix[i][j] = d;
+                        if (i < j && d < minVal) {
+                            minVal = d;
+                            minI = i;
+                            minJ = j;
+                        }
+                    }
+                }
+            }
+
+            // Atualiza badge de próxima ação
+            if (currentStrategy === 'bottom-up') {
+                if (minI !== -1 && minJ !== -1) {
+                    const cA = displayedClusters[minI];
+                    const cB = displayedClusters[minJ];
+                    matrixNextActionBadge.innerHTML = `⚡ Fundir <strong>${cA.name}</strong> e <strong>${cB.name}</strong> (d=${minVal.toFixed(2)})`;
+                } else {
+                    matrixNextActionBadge.innerHTML = '✔ Árvore Completa (1 Grupo)';
+                }
+            } else {
+                // Top-Down: identifica cluster de maior diâmetro
+                let maxDiam = -1;
+                let targetIdx = -1;
+                displayedClusters.forEach((c, idx) => {
+                    const d = calculateClusterDiameter(c.members);
+                    if (c.members.length > 1 && d > maxDiam) {
+                        maxDiam = d;
+                        targetIdx = idx;
+                    }
+                });
+                if (targetIdx !== -1) {
+                    matrixNextActionBadge.innerHTML = `✂ Biparticionar <strong>${displayedClusters[targetIdx].name}</strong> (diâmetro=${maxDiam.toFixed(2)})`;
+                } else {
+                    matrixNextActionBadge.innerHTML = '✔ Todas as folhas isoladas';
+                }
+            }
+
+            // Constrói tabela HTML
+            let html = '<table class="dist-matrix">';
+            
+            // Header row
+            html += '<thead><tr><th>Grupos</th>';
+            displayedClusters.forEach((c, idx) => {
+                const color = CLUSTER_COLORS[idx % CLUSTER_COLORS.length];
+                const memberCount = c.members.length;
+                html += `<th>
+                    <span class="cluster-tag" style="border-color: ${color}">
+                        <span class="cluster-color-dot" style="background: ${color}"></span>
+                        ${c.name} <small style="color: var(--text-muted)">(${memberCount})</small>
+                    </span>
+                </th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            // Body rows
+            for (let i = 0; i < displayedClusters.length; i++) {
+                const cRow = displayedClusters[i];
+                const colorRow = CLUSTER_COLORS[i % CLUSTER_COLORS.length];
+                html += `<tr><th>
+                    <span class="cluster-tag" style="border-color: ${colorRow}">
+                        <span class="cluster-color-dot" style="background: ${colorRow}"></span>
+                        ${cRow.name}
+                    </span>
+                </th>`;
+
+                for (let j = 0; j < displayedClusters.length; j++) {
+                    const val = distMatrix[i][j];
+                    if (i === j) {
+                        html += '<td class="diag">0.00</td>';
+                    } else if (currentStrategy === 'bottom-up' && ((i === minI && j === minJ) || (i === minJ && j === minI))) {
+                        html += `<td class="min-cell" title="Menor distância: próxima fusão!">${val.toFixed(2)} ⚡</td>`;
+                    } else {
+                        html += `<td>${val.toFixed(2)}</td>`;
+                    }
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+
+            if (K > displayLimit) {
+                html += `<div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Exibindo os primeiros ${displayLimit} de ${K} grupos ativos.</div>`;
+            }
+
+            matrixTableContainer.innerHTML = html;
+        }
+
+        // ==========================================
+        // CÁLCULO DE MÉTRICAS (CPCC & SILHUETA)
+        // ==========================================
+        function computeMetrics(root) {
+            const N = points.length;
+            if (N < 3 || !root) {
+                metricK.textContent = N;
+                metricCpcc.textContent = '—';
+                metricSil.textContent = '—';
+                metricStatus.textContent = 'Aguardando pontos';
+                metricAdvice.textContent = 'Adicione ao menos 3 pontos.';
+                return;
+            }
+
+            const uniqueClusters = new Set(points.map(p => p.cluster));
+            const k = uniqueClusters.size;
+            metricK.textContent = k;
+            activeClustersBadge.textContent = k;
+
+            // CPCC
+            let sumD = 0, sumC = 0, count = 0;
+            const origDists = [];
+            const cophDists = [];
+
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    const d = calcDist(points[i], points[j]);
+                    const c = findLCAHeight(root, i, j);
+                    origDists.push(d);
+                    cophDists.push(c);
+                    sumD += d;
+                    sumC += c;
+                    count++;
+                }
+            }
+
+            const meanD = sumD / count;
+            const meanC = sumC / count;
+            let num = 0, denD = 0, denC = 0;
+
+            for (let i = 0; i < count; i++) {
+                const diffD = origDists[i] - meanD;
+                const diffC = cophDists[i] - meanC;
+                num += diffD * diffC;
+                denD += diffD * diffD;
+                denC += diffC * diffC;
+            }
+
+            const cpcc = (denD > 0 && denC > 0) ? (num / Math.sqrt(denD * denC)) : 0;
+            metricCpcc.textContent = cpcc.toFixed(3);
+
+            // Silhueta Média
+            let totalSil = 0;
+            let validPoints = 0;
+
+            if (k > 1 && k < N) {
+                const clustersMap = {};
+                points.forEach(p => {
+                    if (!clustersMap[p.cluster]) clustersMap[p.cluster] = [];
+                    clustersMap[p.cluster].push(p.id);
+                });
+
+                for (let i = 0; i < N; i++) {
+                    const pI = points[i];
+                    const ownMembers = clustersMap[pI.cluster];
+
+                    let a_i = 0;
+                    if (ownMembers && ownMembers.length > 1) {
+                        let sum = 0;
+                        for (let otherId of ownMembers) {
+                            if (otherId !== i) sum += calcDist(pI, points[otherId]);
+                        }
+                        a_i = sum / (ownMembers.length - 1);
+                    }
+
+                    let minOtherAvg = Infinity;
+                    for (let cId in clustersMap) {
+                        if (parseInt(cId) === pI.cluster) continue;
+                        const otherMembers = clustersMap[cId];
+                        let sum = 0;
+                        for (let otherId of otherMembers) {
+                            sum += calcDist(pI, points[otherId]);
+                        }
+                        const avg = sum / otherMembers.length;
+                        if (avg < minOtherAvg) minOtherAvg = avg;
+                    }
+
+                    const b_i = minOtherAvg;
+                    const max_ab = Math.max(a_i, b_i);
+                    const s_i = max_ab > 0 ? (b_i - a_i) / max_ab : 0;
+                    totalSil += s_i;
+                    validPoints++;
+                }
+            }
+
+            const avgSil = validPoints > 0 ? (totalSil / validPoints) : 0;
+            metricSil.textContent = avgSil.toFixed(3);
+
+            if (cpcc > 0.85 && avgSil > 0.60) {
+                metricStatus.textContent = 'Estrutura Excelente';
+                metricStatus.style.color = '#10b981';
+                metricAdvice.textContent = 'Ótima separação e alta fidelidade cofenética.';
+            } else if (cpcc < 0.70) {
+                metricStatus.textContent = 'Distorção Estrutural';
+                metricStatus.style.color = '#ef4444';
+                metricAdvice.textContent = 'Dendrograma distorce as distâncias reais (teste outro Linkage).';
+            } else if (k === 1 || k === N) {
+                metricStatus.textContent = 'Corte Extremo';
+                metricStatus.style.color = '#f59e0b';
+                metricAdvice.textContent = 'Ajuste a altura H para revelar a partição intermediária.';
+            } else {
+                metricStatus.textContent = 'Partição Razoável';
+                metricStatus.style.color = '#60a5fa';
+                metricAdvice.textContent = 'Clusters identificados com separação moderada.';
+            }
+        }
+
+        function findLCAHeight(node, idA, idB) {
+            if (!node || node.isLeaf) return 0;
+            const inLeftA = node.left && node.left.members.includes(idA);
+            const inLeftB = node.left && node.left.members.includes(idB);
+
+            if (inLeftA && inLeftB) return findLCAHeight(node.left, idA, idB);
+            const inRightA = node.right && node.right.members.includes(idA);
+            const inRightB = node.right && node.right.members.includes(idB);
+            if (inRightA && inRightB) return findLCAHeight(node.right, idA, idB);
+
+            return node.height;
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO SCATTER PLOT 2D
+        // ==========================================
+        function drawScatter() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Grade de fundo sutil
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Animação de ligação entre os clusters da iteração atual
+            if (stepIndex >= 0) {
+                if (currentStrategy === 'bottom-up' && stepIndex < mergeHistory.length && stepIndex > 0) {
+                    const currentMerge = mergeHistory[stepIndex];
+                    if (currentMerge.mergedA && currentMerge.mergedB) {
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(currentMerge.mergedA.centroid.x, currentMerge.mergedA.centroid.y);
+                        ctx.lineTo(currentMerge.mergedB.centroid.x, currentMerge.mergedB.centroid.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                } else if (currentStrategy === 'top-down' && stepIndex < splitHistory.length && stepIndex > 0) {
+                    const currentSplit = splitHistory[stepIndex];
+                    if (currentSplit.subL && currentSplit.subR) {
+                        ctx.strokeStyle = '#8b5cf6';
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(currentSplit.subL.centroid.x, currentSplit.subL.centroid.y);
+                        ctx.lineTo(currentSplit.subR.centroid.x, currentSplit.subR.centroid.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+
+            // Desenha os pontos
+            points.forEach(p => {
+                const color = CLUSTER_COLORS[p.clusterColorIndex % CLUSTER_COLORS.length] || COLOR_UNASSIGNED;
+
+                // Glow exterior
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.25;
+                ctx.fill();
+
+                // Ponto central
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Rótulo
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = '10px monospace';
+                const labelText = p.label ? p.label : p.id;
+                ctx.fillText(labelText, p.x + 8, p.y - 8);
+            });
+
+            pointCountEl.textContent = points.length;
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO DENDROGRAMA (SVG)
+        // ==========================================
+        function drawDendrogram(root) {
+            dendroSvg.innerHTML = '';
+            if (!root || points.length < 2) return;
+
+            const rect = dendroSvg.getBoundingClientRect();
+            const width = rect.width || 500;
+            const height = rect.height || 440;
+            const padX = 35;
+            const padTop = 30;
+            const padBottom = 40;
+
+            maxTreeHeight = Math.max(root.height, 1e-4);
+
+            const leaves = [];
+            function getLeafOrder(node) {
+                if (!node) return;
+                if (node.isLeaf) {
+                    leaves.push(node);
+                    return;
+                }
+                getLeafOrder(node.left);
+                getLeafOrder(node.right);
+            }
+            getLeafOrder(root);
+
+            const leafStep = (width - 2 * padX) / (leaves.length - 1 || 1);
+            leaves.forEach((leaf, idx) => {
+                leaf.plotX = padX + idx * leafStep;
+            });
+
+            function heightToY(h) {
+                const availH = height - padTop - padBottom;
+                return height - padBottom - (h / maxTreeHeight) * availH;
+            }
+
+            cutoffSlider.max = Math.ceil(maxTreeHeight * 1.05 * 10);
+            if (cutoffHeight > maxTreeHeight * 1.05) {
+                cutoffHeight = maxTreeHeight * 0.5;
+                cutoffSlider.value = cutoffHeight * 10;
+            }
+            cutoffVal.textContent = cutoffHeight.toFixed(2);
+
+            function renderNode(node) {
+                if (!node) return 0;
+                if (node.isLeaf) {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', node.plotX);
+                    text.setAttribute('y', height - padBottom + 18);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-size', '10px');
+                    text.setAttribute('font-family', 'monospace');
+                    text.setAttribute('fill', '#94a3b8');
+                    text.textContent = node.name || node.id;
+                    dendroSvg.appendChild(text);
+                    return node.plotX;
+                }
+
+                const xL = renderNode(node.left);
+                const xR = renderNode(node.right);
+                node.plotX = (xL + xR) / 2;
+
+                const yNode = heightToY(node.height);
+                const yL = heightToY(node.left ? node.left.height : 0);
+                const yR = heightToY(node.right ? node.right.height : 0);
+
+                let branchColor = '#64748b';
+                if (node.height <= cutoffHeight) {
+                    const sampleLeaf = node.members[0];
+                    const colorIdx = points[sampleLeaf].clusterColorIndex;
+                    branchColor = CLUSTER_COLORS[colorIdx % CLUSTER_COLORS.length] || '#64748b';
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const d = `M ${xL} ${yL} L ${xL} ${yNode} L ${xR} ${yNode} L ${xR} ${yR}`;
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', branchColor);
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-linejoin', 'round');
+                dendroSvg.appendChild(path);
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', node.plotX);
+                circle.setAttribute('cy', yNode);
+                circle.setAttribute('r', '3');
+                circle.setAttribute('fill', branchColor);
+                dendroSvg.appendChild(circle);
+
+                return node.plotX;
+            }
+
+            renderNode(root);
+
+            // Linha de Corte
+            const cutY = heightToY(cutoffHeight);
+            const cutLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            cutLine.setAttribute('x1', padX - 10);
+            cutLine.setAttribute('y1', cutY);
+            cutLine.setAttribute('x2', width - padX + 10);
+            cutLine.setAttribute('y2', cutY);
+            cutLine.setAttribute('stroke', '#ef4444');
+            cutLine.setAttribute('stroke-width', '2');
+            cutLine.setAttribute('stroke-dasharray', '5,4');
+            cutLine.style.cursor = 'ns-resize';
+            dendroSvg.appendChild(cutLine);
+
+            const tag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            tag.setAttribute('x', width - padX + 14);
+            tag.setAttribute('y', cutY + 4);
+            tag.setAttribute('font-size', '10px');
+            tag.setAttribute('font-weight', 'bold');
+            tag.setAttribute('font-family', 'monospace');
+            tag.setAttribute('fill', '#ef4444');
+            tag.textContent = `H=${cutoffHeight.toFixed(2)}`;
+            dendroSvg.appendChild(tag);
+        }
+
+        // ==========================================
+        // FLUXO PRINCIPAL DE ATUALIZAÇÃO
+        // ==========================================
+        function recalculateAndRender() {
+            let root = null;
+            let currentActiveClusters = [];
+
+            if (currentStrategy === 'bottom-up') {
+                root = buildBottomUpTree();
+                strategyInfoBanner.innerHTML = '<span>💡 <strong>Estratégia Bottom-Up (AGNES):</strong> Começa com N clusters isolados. A cada iteração, funde o par com menor dissimilaridade na matriz e reduz a dimensão.</span>';
+                if (stepIndex >= 0 && stepIndex < mergeHistory.length) {
+                    currentActiveClusters = mergeHistory[stepIndex].activeClusters;
+                } else if (mergeHistory.length > 0) {
+                    currentActiveClusters = mergeHistory[mergeHistory.length - 1].activeClusters;
+                }
+            } else {
+                root = buildTopDownTree();
+                strategyInfoBanner.innerHTML = '<span>💡 <strong>Estratégia Top-Down (DIANA / Bisecting):</strong> Começa com todos os pontos em 1 cluster e divide iterativamente o grupo de maior dispersão em dois subgrupos.</span>';
+                if (stepIndex >= 0 && stepIndex < splitHistory.length) {
+                    currentActiveClusters = splitHistory[stepIndex].activeClusters;
+                } else if (splitHistory.length > 0) {
+                    currentActiveClusters = splitHistory[splitHistory.length - 1].activeClusters;
+                }
+            }
+
+            assignClustersByCutoff(root, cutoffHeight);
+            drawScatter();
+            drawDendrogram(root);
+            computeMetrics(root);
+            renderDynamicDistanceMatrix(currentActiveClusters);
+        }
+
+        function setLog(msg) {
+            logText.textContent = msg;
+        }
+
+        // ==========================================
+        // EVENTOS E INTERAÇÃO DO USUÁRIO
+        // ==========================================
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            points.push({
+                id: points.length,
+                x: x,
+                y: y,
+                cluster: 0
+            });
+
+            stepIndex = -1;
+            setLog(`Ponto ${points.length - 1} adicionado nas coordenadas (${Math.round(x)}, ${Math.round(y)}).`);
+            recalculateAndRender();
+        });
+
+        // Estratégia Bottom-Up vs Top-Down
+        document.getElementById('strategySelect').addEventListener('change', (e) => {
+            currentStrategy = e.target.value;
+            stepIndex = -1;
+            setLog(`Estratégia alternada para: ${e.target.options[e.target.selectedIndex].text}`);
+            recalculateAndRender();
+        });
+
+        // Preset Select
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            loadPreset(e.target.value);
+        });
+
+        // Linkage Select
+        document.getElementById('linkageSelect').addEventListener('change', (e) => {
+            linkageMethod = e.target.value;
+            setLog(`Método de ligação alterado para: ${e.target.options[e.target.selectedIndex].text}`);
+            recalculateAndRender();
+        });
+
+        // Metric Select
+        document.getElementById('metricSelect').addEventListener('change', (e) => {
+            distanceMetric = e.target.value;
+            setLog(`Métrica de distância alterada para: ${e.target.options[e.target.selectedIndex].text}`);
+            recalculateAndRender();
+        });
+
+        // Slider de Linha de Corte
+        cutoffSlider.addEventListener('input', (e) => {
+            stepIndex = -1;
+            cutoffHeight = parseFloat(e.target.value) / 10;
+            cutoffVal.textContent = cutoffHeight.toFixed(2);
+            recalculateAndRender();
+        });
+
+        // Botão Limpar
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            points = [];
+            stepIndex = -1;
+            setLog("Todos os pontos foram removidos. Clique no canvas para recomeçar.");
+            recalculateAndRender();
+        });
+
+        // Função para Avançar Passo
+        function advanceStep() {
+            if (currentStrategy === 'bottom-up') {
+                if (mergeHistory.length === 0) buildBottomUpTree();
+                if (mergeHistory.length === 0) return;
+
+                const maxSteps = mergeHistory.length - 1;
+                if (stepIndex === -1) {
+                    stepIndex = 1;
+                } else if (stepIndex < maxSteps) {
+                    stepIndex++;
+                } else {
+                    setLog(`[Bottom-Up]: Todas as ${maxSteps} fusões já foram concluídas!`);
+                    return;
+                }
+
+                const item = mergeHistory[stepIndex];
+                setLog(`[Bottom-Up Passo ${item.step}/${maxSteps}]: ${item.actionDescription}`);
+            } else {
+                if (splitHistory.length === 0) buildTopDownTree();
+                if (splitHistory.length === 0) return;
+
+                const maxSteps = splitHistory.length - 1;
+                if (stepIndex === -1) {
+                    stepIndex = 1;
+                } else if (stepIndex < maxSteps) {
+                    stepIndex++;
+                } else {
+                    setLog(`[Top-Down]: Todas as divisões já foram concluídas!`);
+                    return;
+                }
+
+                const item = splitHistory[stepIndex];
+                setLog(`[Top-Down Passo ${item.step}/${maxSteps}]: ${item.actionDescription}`);
+            }
+            recalculateAndRender();
+        }
+
+        // Função para Voltar Passo
+        function goBackStep() {
+            if (currentStrategy === 'bottom-up') {
+                if (mergeHistory.length === 0) buildBottomUpTree();
+                if (mergeHistory.length === 0) return;
+
+                const maxSteps = mergeHistory.length - 1;
+                if (stepIndex === -1) {
+                    stepIndex = maxSteps > 0 ? maxSteps - 1 : 0;
+                } else if (stepIndex > 0) {
+                    stepIndex--;
+                } else {
+                    setLog("[Bottom-Up]: Você já está no estado inicial (Passo 0: N clusters unitários).");
+                    return;
+                }
+
+                const item = mergeHistory[stepIndex];
+                setLog(`[Bottom-Up Voltou para Passo ${item.step}/${maxSteps}]: ${item.actionDescription}`);
+            } else {
+                if (splitHistory.length === 0) buildTopDownTree();
+                if (splitHistory.length === 0) return;
+
+                const maxSteps = splitHistory.length - 1;
+                if (stepIndex === -1) {
+                    stepIndex = maxSteps > 0 ? maxSteps - 1 : 0;
+                } else if (stepIndex > 0) {
+                    stepIndex--;
+                } else {
+                    setLog("[Top-Down]: Você já está no estado inicial (Passo 0: 1 macro-cluster).");
+                    return;
+                }
+
+                const item = splitHistory[stepIndex];
+                setLog(`[Top-Down Voltou para Passo ${item.step}/${maxSteps}]: ${item.actionDescription}`);
+            }
+            recalculateAndRender();
+        }
+
+        // Eventos dos botões
+        document.getElementById('stepBtn').addEventListener('click', advanceStep);
+        document.getElementById('prevStepBtn').addEventListener('click', goBackStep);
+
+        // Reset Passos
+        document.getElementById('resetStepBtn').addEventListener('click', () => {
+            stepIndex = -1;
+            setLog("Modo passo a passo reiniciado para o dendrograma completo.");
+            recalculateAndRender();
+        });
+
+        // Atalhos de Teclado (Seta Direita / Seta Esquerda / PageDown / PageUp) para o palestrante
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                e.preventDefault();
+                advanceStep();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                goBackStep();
+            }
+        });
+
+        // Inicialização
+        setTimeout(() => {
+            resizeCanvas();
+            loadPreset('blobs');
+        }, 100);
+
+    </script>
+</body>
+</html>
