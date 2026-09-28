@@ -8,15 +8,18 @@ Este repositório contém todo o material didático, scripts de validação mate
 
 | Arquivo | Descrição |
 | :--- | :--- |
-| 📄 [`AGRUPAMENTO_HIERARQUICO.md`](AGRUPAMENTO_HIERARQUICO.md) | **Roteiro completo da palestra**: Teoria formal, passo a passo matemático, fórmula de Lance-Williams, exemplo numérico manual resolvido, métodos de ligação (*Ward, Complete, Average, Single*), leitura do dendrograma, validação com CPCC e Silhueta, armadilhas comuns, roteiro sugerido de 45 min e Speaker Notes slide a slide. |
-| 🌐 [`dendrograma_interativo.html`](dendrograma_interativo.html) | **Simulador Interativo Livre**: Ferramenta visual com adição de pontos com o mouse, alternância Top-Down vs Bottom-Up, dendrograma dinâmico e matriz de distâncias que se altera em tempo real com controle de avançar/voltar passos. |
-| 🌐 [`comparativo_linkage.html`](comparativo_linkage.html) | **Comparativo de Linkage com Dados Fixados**: Painel em 4 quadrantes sincronizados comparando Single, Complete, Average e Ward simultaneamente no mesmo conjunto de pontos, com 5 datasets canônicos (Ponte/Chaining, 5 Pontos A-E, Outlier, Meias-Luas, Desbalanceado). |
-| 🌐 [`comparativo_divisivo.html`](comparativo_divisivo.html) | **Comparativo Top-Down (Estratégia Divisiva)**: Painel em 4 quadrantes sincronizados comparando DIANA (*Splinter Group*), Bisecting K-Means, Furthest-Pair (*2-Medoids*) e PCA Hyperplane Split (*PDDP*), com visualização das fronteiras ativas e avanço passo a passo. |
-| 🐍 [`validate_dendrogram.py`](validate_dendrogram.py) | **Script de Validação Matemática e Gráficos**: Varre cortes de $k$, calcula CPCC, Silhueta, Davies-Bouldin, Calinski-Harabasz e gera figuras em alta resolução (`dendrogram_comparativo.png`, `validacao_metricas_corte.png`, `efeito_chaining_comparativo.png`). |
-| 🧪 [`test_dendrogram.py`](test_dendrogram.py) | **Suíte de Testes Automatizados (Pytest)**: Valida dimensões da matriz de ligação, monotonia das alturas, limites do CPCC, partições exatas em $k$, detecção do efeito chaining e impacto da padronização. |
-| 🐍 [`agrupamento_hierarquico.py`](agrupamento_hierarquico.py) | Script complementar de demonstração e visualização com Scipy/Sklearn. |
-| 🧪 [`test_dendrograma.py`](test_dendrograma.py) | Testes unitários adicionais cobrindo desigualdade ultramétrica e recuperação de partições canônicas. |
-| 📦 [`requirements.txt`](requirements.txt) | Lista de bibliotecas Python necessárias (`numpy`, `scipy`, `matplotlib`, `scikit-learn`, `seaborn`). |
+| 📊 [`SLIDES_PALESTRA.md`](SLIDES_PALESTRA.md) | **Slide Deck Pronto para Apresentação**: 25 slides formatados para Marp/HTML com notas do orador (*Speaker Notes*) minuto a minuto, cronometrado para 45 minutos. |
+| 📄 [`AGRUPAMENTO_HIERARQUICO.md`](AGRUPAMENTO_HIERARQUICO.md) | **Roteiro teórico completo da palestra**: Teoria formal, passo a passo matemático, fórmula de Lance-Williams, métodos de ligação (*Ward, Complete, Average, Single*), leitura do dendrograma e validação. |
+| 📄 [`ESTRATEGIA_DIVISIVA_TOP_DOWN.md`](ESTRATEGIA_DIVISIVA_TOP_DOWN.md) | **Guia da Estratégia Top-Down (Divisiva)**: A analogia de esculpir mármore, o desafio da explosão combinatória $2^{N-1}-1$, algoritmo DIANA (*Splinter Group*) com cálculo passo a passo resolvido à mão e Bisecting K-Means. |
+| 🎬 [`LIVE_DEMO_PLAYBOOK.md`](LIVE_DEMO_PLAYBOOK.md) | **Playbook de Demonstração Ao Vivo**: Roteiro de 8 a 10 min explicando o que clicar e falar em cada aba interativa para criar momentos de impacto com a audiência. |
+| ❓ [`FAQ_TECNICO_PALESTRA.md`](FAQ_TECNICO_PALESTRA.md) | **FAQ e Guia de Defesa**: As 6 perguntas mais difíceis da plateia técnica (Big Data, dados mistos de Gower, fenômeno de inversões, etc.) com respostas prontas. |
+| 🛒 [`caso_pratico_segmentacao.py`](caso_pratico_segmentacao.py) | **Estudo de Caso Prático de Negócios (RFM)**: Segmentação real de e-commerce com Recência, Frequência e Monetário, gerando heatmap hierárquico (`clustermap`) e perfis de personas. |
+| 🌐 [`dendrograma_interativo.html`](dendrograma_interativo.html) | **Simulador Interativo Livre**: Ferramenta visual com adição de pontos com o mouse, dendrograma dinâmico em SVG, linha de corte arrastável e animação de fusão passo a passo. |
+| 🌐 [`comparativo_linkage.html`](comparativo_linkage.html) | **Comparativo de Linkage com Dados Fixados**: Painel em 4 quadrantes sincronizados comparando Single, Complete, Average e Ward simultaneamente sobre os mesmos pontos. |
+| 🌐 [`comparativo_divisivo.html`](comparativo_divisivo.html) | **Comparativo Top-Down (Estratégia Divisiva)**: Painel em 4 quadrantes sincronizados comparando DIANA, Bisecting K-Means, Furthest-Pair e PDDP com avanço de passos. |
+| 🐍 [`validate_dendrogram.py`](validate_dendrogram.py) | **Script de Validação Matemática e Gráficos**: Varre cortes de $k$, calcula CPCC, Silhueta, Davies-Bouldin e gera gráficos em alta definição. |
+| 🧪 [`test_dendrograma.py`](test_dendrograma.py) | **Suíte de Testes Automatizados**: Valida axiomas matemáticos (Desigualdade Ultramétrica, monotonia, limites do CPCC e recuperação de clusters). |
+| 📦 [`requirements.txt`](requirements.txt) | Lista de bibliotecas Python necessárias (`numpy`, `scipy`, `matplotlib`, `scikit-learn`, `pandas`, `seaborn`). |
 
 
 ---

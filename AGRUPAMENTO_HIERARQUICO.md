@@ -38,6 +38,7 @@ O agrupamento hierárquico adota uma filosofia diferente:
 
 ---
 
+## 2. A Estratégia Hierárquica: Aglomerativa vs. Divisiva
 ## 2. A Estratégia Hierárquica: Aglomerativa (Bottom-Up) vs. Divisiva (Top-Down)
 
 Existem duas abordagens fundamentais:
@@ -51,6 +52,11 @@ Existem duas abordagens fundamentais:
                     [ CADA DADO EM SEU PRÓPRIO CLUSTER ]
 ```
 
+### 1. Aglomerativo (*Bottom-Up* - De baixo para cima)
+- **Mais popular e amplamente utilizado na indústria.**
+- Começa com $N$ clusters (cada ponto de dado é um cluster individual de tamanho 1).
+- A cada iteração, calcula as distâncias entre todos os clusters e **funde os dois clusters mais próximos**.
+- Repete até que todos os pontos estejam contidos em um único cluster de tamanho $N$.
 ### 1. Estratégia Aglomerativa (*Bottom-Up* - De baixo para cima) / AGNES
 - **Conceito:** Parte do nível mais granular e constrói abstrações crescentes.
 - **Passo a Passo:**
@@ -65,6 +71,11 @@ Existem duas abordagens fundamentais:
   - Excelente para detectar agrupamentos locais pequenos e detalhados.
 - **Desvantagem:** Decisões "míopes" — fusões feitas no início são irreversíveis (*greedy approach*). Se dois pontos foram agrupados erroneamente por ruído local, essa união jamais será desfeita.
 
+### 2. Divisivo (*Top-Down* - De cima para baixo)
+- Começa com 1 cluster gigante contendo todos os $N$ pontos.
+- A cada passo, aplica um critério de divisão (frequentemente usando outro algoritmo, como 2-Means recursivo) para dividir o cluster menos coeso em dois.
+- Repete até que cada observação fique isolada em seu próprio cluster.
+- **Desvantagem:** Computacionalmente mais caro se exploradas todas as combinações ($2^{N-1}-1$ maneiras de dividir um conjunto).
 ---
 
 ### 2. Estratégia Divisiva (*Top-Down* - De cima para baixo) / DIANA
