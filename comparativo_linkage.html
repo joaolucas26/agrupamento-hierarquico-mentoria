@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparativo dos Métodos de Ligação (Linkage) | Dados Fixados</title>
+    <style>
+        :root {
+            --bg-main: #0a0e17;
+            --bg-card: #131c2e;
+            --bg-card-alt: #1a253c;
+            --border: #263554;
+            --border-highlight: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --single-color: #ef4444;
+            --complete-color: #3b82f6;
+            --average-color: #10b981;
+            --ward-color: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 30px;
+        }
+
+        header {
+            background: linear-gradient(180deg, #162035 0%, #0d1424 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-badge {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 28px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        select, button {
+            background-color: #1a253c;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: #475569;
+            background-color: #24324f;
+        }
+
+        button.btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        button.btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* DATASET INFO BAR */
+        .dataset-banner {
+            background: rgba(59, 130, 246, 0.06);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 28px;
+            font-size: 0.84rem;
+            color: #93c5fd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* VIEW MODE TABS / SELECTOR */
+        .view-mode-tabs {
+            display: inline-flex;
+            background: #111a2e;
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            gap: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .tab-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
+        }
+
+        .tab-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* 4-QUADRANT COMPARISON GRID */
+        .quadrant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 18px 28px;
+            flex: 1;
+            transition: all 0.25s ease;
+        }
+
+        /* MODO 1 DE CADA VEZ (TELA CHEIA / AMPLIADO) */
+        .quadrant-grid.single-view {
+            grid-template-columns: 1fr !important;
+            max-width: 1560px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 16px 28px;
+        }
+
+        .method-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .quadrant-grid.single-view .method-card {
+            border-width: 1.5px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.45);
+        }
+
+        .method-card:hover {
+            border-color: #3e527a;
+        }
+
+        .card-header {
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quadrant-grid.single-view .card-header {
+            padding: 16px 24px;
+        }
+
+        .method-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quadrant-grid.single-view .method-title {
+            font-size: 1.25rem;
+        }
+
+        .method-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .card-metrics {
+            display: flex;
+            gap: 12px;
+            font-size: 0.78rem;
+            font-family: monospace;
+        }
+
+        .quadrant-grid.single-view .card-metrics {
+            font-size: 0.92rem;
+            gap: 16px;
+        }
+
+        .metric-pill {
+            background: #1a253c;
+            border: 1px solid var(--border);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .quadrant-grid.single-view .metric-pill {
+            padding: 5px 12px;
+        }
+
+        .metric-pill strong {
+            color: #ffffff;
+        }
+
+        .card-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 14px;
+            background: #0b111e;
+        }
+
+        .quadrant-grid.single-view .card-body {
+            gap: 20px;
+            padding: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .view-box {
+            position: relative;
+            background: #080d17;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            height: 330px; /* Aumentado de 240px para 330px */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: height 0.25s ease;
+        }
+
+        /* Altura ampliada no modo 1 de cada vez */
+        .quadrant-grid.single-view .view-box {
+            height: 540px; /* Gráficos gigantes para máxima visibilidade na apresentação */
+        }
+
+        .view-label {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            pointer-events: none;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .quadrant-grid.single-view .view-label {
+            font-size: 0.78rem;
+            top: 10px;
+            left: 12px;
+            padding: 3px 9px;
+        }
+
+        .card-footer {
+            padding: 9px 18px;
+            background: rgba(255, 255, 255, 0.01);
+            border-top: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .quadrant-grid.single-view .card-footer {
+            font-size: 0.92rem;
+            padding: 14px 24px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        svg.dendro-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* FOOTER LOG */
+        .footer-log {
+            background: #070a12;
+            border-top: 1px solid var(--border);
+            padding: 10px 28px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <h1>Comparativo de Métodos de Ligação (Linkage)</h1>
+            <span class="header-badge">Dados Fixos & Sincronizados</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+            Compare Single, Complete, Average e Ward no mesmo conjunto de pontos
+        </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <!-- SELETOR DE MODO DE VISUALIZAÇÃO (1 DE CADA VEZ OU GRADE) -->
+        <div class="control-group">
+            <span class="control-label">Modo:</span>
+            <select id="viewModeSelect">
+                <option value="all" selected>⊞ Todos os 4 (Grade 2×2)</option>
+                <option value="single">🟡 1. Single Linkage (Vizinho Mais Próximo)</option>
+                <option value="complete">🔵 2. Complete Linkage (Vizinho Mais Distante)</option>
+                <option value="average">🟠 3. Average Linkage (Média UPGMA)</option>
+                <option value="ward">🟣 4. Ward's Method (Mínima Variância)</option>
+            </select>
+        </div>
+
+        <div class="view-mode-tabs" id="viewModeTabs">
+            <button class="tab-btn active" data-view="all" title="Ver 4 em Grade (Atalho: 0 ou A)">
+                <span>⊞</span> Todos (2×2)
+            </button>
+            <button class="tab-btn" data-view="single" title="Ver apenas Single Linkage em tela cheia (Atalho: 1)">
+                <span class="tab-dot" style="background: var(--single-color);"></span> Single
+            </button>
+            <button class="tab-btn" data-view="complete" title="Ver apenas Complete Linkage em tela cheia (Atalho: 2)">
+                <span class="tab-dot" style="background: var(--complete-color);"></span> Complete
+            </button>
+            <button class="tab-btn" data-view="average" title="Ver apenas Average Linkage em tela cheia (Atalho: 3)">
+                <span class="tab-dot" style="background: var(--average-color);"></span> Average
+            </button>
+            <button class="tab-btn" data-view="ward" title="Ver apenas Ward's Method em tela cheia (Atalho: 4)">
+                <span class="tab-dot" style="background: var(--ward-color);"></span> Ward
+            </button>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Dataset:</span>
+            <select id="datasetSelect">
+                <option value="chaining">1. O Teste da Ponte (Efeito Chaining)</option>
+                <option value="didactic5">2. Exemplo Numérico Manual (5 Pontos A-E)</option>
+                <option value="outlier">3. Dois Grupos + Outlier Distante</option>
+                <option value="rings">4. Meias-Luas / Curvas (Formato Não-Esférico)</option>
+                <option value="unbalanced">5. Grupos com Densidades e Tamanhos Desiguais</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Corte (k):</span>
+            <select id="kSelect">
+                <option value="2" selected>k = 2</option>
+                <option value="3">k = 3</option>
+                <option value="4">k = 4</option>
+                <option value="5">k = 5</option>
+            </select>
+        </div>
+
+        <div class="control-group" style="margin-left: auto;">
+            <button id="prevBtn" title="Voltar um passo (Seta Esquerda ←)">◀ Voltar</button>
+            <button id="nextBtn" class="btn-primary" title="Avançar um passo (Seta Direita →)">Avançar ▶</button>
+            <button id="resetBtn" title="Resetar para o corte k selecionado">↺ Árvores Finais</button>
+        </div>
+    </div>
+
+    <!-- DATASET DESCRIPTION BANNER -->
+    <div class="dataset-banner">
+        <span id="datasetDesc">Carregando informações do dataset...</span>
+        <span id="stepProgress" style="font-family: monospace; font-weight: 700; color: #c084fc;">Passo: Completo (k=2)</span>
+    </div>
+
+    <!-- 4-QUADRANT COMPARISON GRID -->
+    <div class="quadrant-grid">
+        
+        <!-- 1. SINGLE LINKAGE -->
+        <div class="method-card" id="card-single">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--single-color);">
+                    <span class="method-dot" style="background: var(--single-color);"></span>
+                    1. Single Linkage (Mínimo / Vizinho Mais Próximo)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">CPCC: <strong id="cpcc-single">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-single">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-single"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma</span>
+                    <svg id="svg-single" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Fórmula: $D(A, B) = \min_{u \in A, v \in B} d(u, v)$ • Sensível ao efeito encadeamento (*chaining*).
+            </div>
+        </div>
+
+        <!-- 2. COMPLETE LINKAGE -->
+        <div class="method-card" id="card-complete">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--complete-color);">
+                    <span class="method-dot" style="background: var(--complete-color);"></span>
+                    2. Complete Linkage (Máximo / Vizinho Mais Distante)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">CPCC: <strong id="cpcc-complete">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-complete">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-complete"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma</span>
+                    <svg id="svg-complete" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Fórmula: $D(A, B) = \max_{u \in A, v \in B} d(u, v)$ • Evita chaining, força grupos de diâmetro compacto.
+            </div>
+        </div>
+
+        <!-- 3. AVERAGE LINKAGE -->
+        <div class="method-card" id="card-average">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--average-color);">
+                    <span class="method-dot" style="background: var(--average-color);"></span>
+                    3. Average Linkage (Média UPGMA)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">CPCC: <strong id="cpcc-average">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-average">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-average"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma</span>
+                    <svg id="svg-average" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Fórmula: $D(A, B) = \frac{1}{|A||B|} \sum d(u, v)$ • Equilíbrio estável; alta correlação cofenética.
+            </div>
+        </div>
+
+        <!-- 4. WARD'S METHOD -->
+        <div class="method-card" id="card-ward">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--ward-color);">
+                    <span class="method-dot" style="background: var(--ward-color);"></span>
+                    4. Ward's Method (Mínima Variância)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">CPCC: <strong id="cpcc-ward">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-ward">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-ward"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma</span>
+                    <svg id="svg-ward" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Fórmula: $\Delta ESS = \frac{|A||B|}{|A|+|B|} \|\mu_A - \mu_B\|^2$ • Padrão de mercado para clusters esféricos equilibrados.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER LOG -->
+    <div class="footer-log">
+        <span class="footer-dot"></span>
+        <span id="logText">Pronto. Alterne os datasets ou avance os passos para comparar as decisões dos métodos de ligação.</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // PALETAS DE CORES
+        // ==========================================
+        const CLUSTER_COLORS = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
+            '#06b6d4', '#f97316', '#14b8a6', '#e11d48', '#84cc16'
+        ];
+
+        // ==========================================
+        // DATASETS FIXOS (DETERMINÍSTICOS)
+        // ==========================================
+        const FIXED_DATASETS = {
+            chaining: {
+                title: "O Teste da Ponte (Efeito Chaining)",
+                desc: "Dois blocos esféricos compactos conectados por 3 pontos tênues intermediários. Note como Single Linkage 'cai na armadilha' e funde os dois blocos em k=2!",
+                points: [
+                    // Bloco Esquerdo (8 pts)
+                    {id: 0, x: 50, y: 110}, {id: 1, x: 65, y: 85}, {id: 2, x: 75, y: 130},
+                    {id: 3, x: 85, y: 105}, {id: 4, x: 60, y: 145}, {id: 5, x: 95, y: 80},
+                    {id: 6, x: 100, y: 125}, {id: 7, x: 110, y: 100},
+                    // Ponte de Ruído (3 pts)
+                    {id: 8, x: 145, y: 112}, {id: 9, x: 180, y: 115}, {id: 10, x: 215, y: 113},
+                    // Bloco Direito (8 pts)
+                    {id: 11, x: 250, y: 110}, {id: 12, x: 265, y: 85}, {id: 13, x: 275, y: 130},
+                    {id: 14, x: 285, y: 105}, {id: 15, x: 260, y: 145}, {id: 16, x: 295, y: 80},
+                    {id: 17, x: 300, y: 125}, {id: 18, x: 310, y: 100},
+                    // Outlier periférico isolado
+                    {id: 19, x: 180, y: 30}
+                ]
+            },
+            didactic5: {
+                title: "Exemplo Numérico Manual (5 Pontos A-E do Guia)",
+                desc: "As 5 observações exatas do cálculo passo a passo: A(2), B(3), C(8), D(13), E(14). Permite acompanhar as alturas de fusão e as matrizes reduzidas.",
+                points: [
+                    {id: 0, label: 'A', x: 50, y: 115},
+                    {id: 1, label: 'B', x: 85, y: 115},
+                    {id: 2, label: 'C', x: 180, y: 115},
+                    {id: 3, label: 'D', x: 275, y: 115},
+                    {id: 4, label: 'E', x: 310, y: 115}
+                ]
+            },
+            outlier: {
+                title: "Dois Grupos Densos + Outlier Distante",
+                desc: "Dois grupos circulares bem definidos e um ponto extremo afastado. Complete e Ward mantêm os grupos coesos; Single isola o outlier.",
+                points: [
+                    // Grupo A
+                    {id: 0, x: 70, y: 80}, {id: 1, x: 90, y: 65}, {id: 2, x: 105, y: 95},
+                    {id: 3, x: 75, y: 110}, {id: 4, x: 115, y: 75}, {id: 5, x: 95, y: 120},
+                    // Grupo B
+                    {id: 6, x: 240, y: 80}, {id: 7, x: 260, y: 65}, {id: 8, x: 275, y: 95},
+                    {id: 9, x: 245, y: 110}, {id: 10, x: 285, y: 75}, {id: 11, x: 265, y: 120},
+                    // Outlier extremo
+                    {id: 12, x: 175, y: 215}
+                ]
+            },
+            rings: {
+                title: "Meias-Luas / Formato Não-Esférico",
+                desc: "Cenário onde o Single Linkage VENCE Ward e Complete! Devido à ligação por proximidade local, Single acompanha a curvatura contínua.",
+                points: [
+                    // Arco Superior
+                    {id: 0, x: 60, y: 80}, {id: 1, x: 80, y: 65}, {id: 2, x: 110, y: 55},
+                    {id: 3, x: 140, y: 55}, {id: 4, x: 170, y: 65}, {id: 5, x: 190, y: 80},
+                    {id: 6, x: 210, y: 100},
+                    // Arco Inferior
+                    {id: 7, x: 110, y: 120}, {id: 8, x: 130, y: 140}, {id: 9, x: 160, y: 150},
+                    {id: 10, x: 190, y: 150}, {id: 11, x: 220, y: 140}, {id: 12, x: 240, y: 120},
+                    {id: 13, x: 260, y: 100}
+                ]
+            },
+            unbalanced: {
+                title: "Grupos com Densidades e Tamanhos Desiguais",
+                desc: "Um cluster grande e denso (12 pontos) e um cluster menor e disperso (4 pontos). Ward tende a quebrar clusters grandes ao meio; Average respeita a heterogeneidade.",
+                points: [
+                    // Cluster Grande Denso
+                    {id: 0, x: 70, y: 90}, {id: 1, x: 80, y: 75}, {id: 2, x: 95, y: 85},
+                    {id: 3, x: 65, y: 110}, {id: 4, x: 85, y: 105}, {id: 5, x: 105, y: 95},
+                    {id: 6, x: 75, y: 130}, {id: 7, x: 95, y: 125}, {id: 8, x: 110, y: 115},
+                    {id: 9, x: 85, y: 145}, {id: 10, x: 105, y: 140}, {id: 11, x: 120, y: 130},
+                    // Cluster Pequeno Disperso
+                    {id: 12, x: 240, y: 60}, {id: 13, x: 290, y: 80},
+                    {id: 14, x: 250, y: 140}, {id: 15, x: 300, y: 160}
+                ]
+            }
+        };
+
+        // ==========================================
+        // ESTADO GLOBAL
+        // ==========================================
+        let currentPoints = [];
+        let selectedK = 2;
+        let globalStepIndex = -1; // -1 = corte final baseado em k
+        let currentViewMode = 'all'; // 'all', 'single', 'complete', 'average', 'ward'
+        const methods = ['single', 'complete', 'average', 'ward'];
+        let trees = {};
+        let histories = {};
+
+        // ==========================================
+        // DISTÂNCIA EUCLIDIANA
+        // ==========================================
+        function dist2D(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // ==========================================
+        // DISSIMILARIDADE ENTRE CLUSTERS & PONTOS DETERMINANTES
+        // ==========================================
+        function calcClusterDistDetail(c1, c2, method) {
+            const m1 = c1.members;
+            const m2 = c2.members;
+            let dist = 0;
+            let witnessA = null;
+            let witnessB = null;
+
+            if (method === 'single') {
+                let minD = Infinity;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        const d = dist2D(currentPoints[i], currentPoints[j]);
+                        if (d < minD) {
+                            minD = d;
+                            witnessA = i;
+                            witnessB = j;
+                        }
+                    }
+                }
+                dist = minD;
+            } else if (method === 'complete') {
+                let maxD = -Infinity;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        const d = dist2D(currentPoints[i], currentPoints[j]);
+                        if (d > maxD) {
+                            maxD = d;
+                            witnessA = i;
+                            witnessB = j;
+                        }
+                    }
+                }
+                dist = maxD;
+            } else if (method === 'average') {
+                let sumD = 0;
+                for (let i of m1) {
+                    for (let j of m2) {
+                        sumD += dist2D(currentPoints[i], currentPoints[j]);
+                    }
+                }
+                dist = sumD / (m1.length * m2.length);
+            } else if (method === 'ward') {
+                const dx = c1.centroid.x - c2.centroid.x;
+                const dy = c1.centroid.y - c2.centroid.y;
+                const distSq = dx * dx + dy * dy;
+                const factor = (m1.length * m2.length) / (m1.length + m2.length);
+                dist = Math.sqrt(factor * distSq);
+            }
+            return { dist, witnessA, witnessB };
+        }
+
+        function calcClusterDist(c1, c2, method) {
+            return calcClusterDistDetail(c1, c2, method).dist;
+        }
+
+        // ==========================================
+        // CONSTRUÇÃO DA ÁRVORE PARA UM MÉTODO ESPECÍFICO
+        // ==========================================
+        function buildTreeForMethod(method) {
+            const N = currentPoints.length;
+            if (N < 2) return { root: null, history: [] };
+
+            let clusters = currentPoints.map((p, idx) => ({
+                id: idx,
+                name: p.label ? p.label : `P${idx}`,
+                members: [idx],
+                isLeaf: true,
+                height: 0,
+                left: null,
+                right: null,
+                centroid: { x: p.x, y: p.y }
+            }));
+
+            const history = [{
+                step: 0,
+                clusters: clusters.map(c => ({ ...c, members: [...c.members] })),
+                mergedA: null,
+                mergedB: null,
+                witnessA: null,
+                witnessB: null,
+                dist: 0
+            }];
+
+            let nextId = N;
+
+            for (let step = 0; step < N - 1; step++) {
+                let minDist = Infinity;
+                let bestI = -1, bestJ = -1;
+                let bestWitnessA = null, bestWitnessB = null;
+
+                for (let i = 0; i < clusters.length; i++) {
+                    for (let j = i + 1; j < clusters.length; j++) {
+                        const detail = calcClusterDistDetail(clusters[i], clusters[j], method);
+                        if (detail.dist < minDist) {
+                            minDist = detail.dist;
+                            bestI = i;
+                            bestJ = j;
+                            bestWitnessA = detail.witnessA;
+                            bestWitnessB = detail.witnessB;
+                        }
+                    }
+                }
+
+                if (bestI === -1) break;
+
+                const cA = clusters[bestI];
+                const cB = clusters[bestJ];
+                const tot = cA.members.length + cB.members.length;
+                const newCen = {
+                    x: (cA.centroid.x * cA.members.length + cB.centroid.x * cB.members.length) / tot,
+                    y: (cA.centroid.y * cA.members.length + cB.centroid.y * cB.members.length) / tot
+                };
+
+                const merged = {
+                    id: nextId++,
+                    name: `(${cA.name}, ${cB.name})`,
+                    members: [...cA.members, ...cB.members],
+                    isLeaf: false,
+                    height: minDist,
+                    left: cA,
+                    right: cB,
+                    centroid: newCen
+                };
+
+                clusters.splice(Math.max(bestI, bestJ), 1);
+                clusters.splice(Math.min(bestI, bestJ), 1);
+                clusters.push(merged);
+
+                history.push({
+                    step: step + 1,
+                    clusters: clusters.map(c => ({ ...c, members: [...c.members] })),
+                    mergedA: cA,
+                    mergedB: cB,
+                    mergedNode: merged,
+                    dist: minDist,
+                    witnessA: bestWitnessA,
+                    witnessB: bestWitnessB,
+                    method: method
+                });
+            }
+
+            return { root: clusters[0], history: history };
+        }
+
+        // ==========================================
+        // ATRIBUIÇÃO DE CLUSTERS PARA CORTE K OU PASSO
+        // ==========================================
+        function getClusterAssignment(method, kTarget, step) {
+            const N = currentPoints.length;
+            const labels = new Array(N).fill(0);
+
+            if (step >= 0 && step < histories[method].length) {
+                // Estado da iteração específica
+                const state = histories[method][step];
+                state.clusters.forEach((cl, cIdx) => {
+                    cl.members.forEach(pIdx => {
+                        labels[pIdx] = cIdx;
+                    });
+                });
+                return labels;
+            }
+
+            // Corte direto na árvore para obter exatamente kTarget clusters
+            const root = trees[method];
+            if (!root) return labels;
+
+            // Coleta os nós em ordem decrescente de altura de fusão
+            const nodes = [];
+            function collectInternal(n) {
+                if (!n || n.isLeaf) return;
+                nodes.push(n);
+                collectInternal(n.left);
+                collectInternal(n.right);
+            }
+            collectInternal(root);
+            nodes.sort((a, b) => b.height - a.height);
+
+            // Altura de corte: entre o corte (k-1) e k
+            const cutIdx = kTarget - 2;
+            let cutHeight = 0;
+            if (nodes.length > cutIdx && cutIdx >= 0) {
+                const nextHeight = nodes[cutIdx + 1] ? nodes[cutIdx + 1].height : 0;
+                cutHeight = (nodes[cutIdx].height + nextHeight) / 2;
+            } else if (nodes.length > 0) {
+                cutHeight = nodes[nodes.length - 1].height / 2;
+            }
+
+            let clusterCounter = 0;
+            function traverseCut(node) {
+                if (!node) return;
+                if (node.isLeaf || node.height <= cutHeight) {
+                    const cId = clusterCounter++;
+                    node.members.forEach(pIdx => labels[pIdx] = cId);
+                    return;
+                }
+                traverseCut(node.left);
+                traverseCut(node.right);
+            }
+            traverseCut(root);
+
+            return labels;
+        }
+
+        // ==========================================
+        // CÁLCULO DE CPCC E SILHUETA
+        // ==========================================
+        function computeMethodMetrics(method, labels) {
+            const N = currentPoints.length;
+            const root = trees[method];
+            if (N < 3 || !root) return { cpcc: 0, sil: 0 };
+
+            // CPCC
+            let sumD = 0, sumC = 0, count = 0;
+            const origDists = [];
+            const cophDists = [];
+
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    const d = dist2D(currentPoints[i], currentPoints[j]);
+                    const c = getLCAHeight(root, i, j);
+                    origDists.push(d);
+                    cophDists.push(c);
+                    sumD += d;
+                    sumC += c;
+                    count++;
+                }
+            }
+
+            const meanD = sumD / count;
+            const meanC = sumC / count;
+            let num = 0, denD = 0, denC = 0;
+
+            for (let i = 0; i < count; i++) {
+                const diffD = origDists[i] - meanD;
+                const diffC = cophDists[i] - meanC;
+                num += diffD * diffC;
+                denD += diffD * diffD;
+                denC += diffC * diffC;
+            }
+            const cpcc = (denD > 0 && denC > 0) ? (num / Math.sqrt(denD * denC)) : 0;
+
+            // Silhueta
+            const uniqueLabels = Array.from(new Set(labels));
+            const k = uniqueLabels.size;
+            let totalSil = 0, valid = 0;
+
+            if (k > 1 && k < N) {
+                const clustersMap = {};
+                labels.forEach((cId, pIdx) => {
+                    if (!clustersMap[cId]) clustersMap[cId] = [];
+                    clustersMap[cId].push(pIdx);
+                });
+
+                for (let i = 0; i < N; i++) {
+                    const ownMembers = clustersMap[labels[i]];
+                    let a_i = 0;
+                    if (ownMembers && ownMembers.length > 1) {
+                        let sum = 0;
+                        for (let oId of ownMembers) {
+                            if (oId !== i) sum += dist2D(currentPoints[i], currentPoints[oId]);
+                        }
+                        a_i = sum / (ownMembers.length - 1);
+                    }
+
+                    let minOther = Infinity;
+                    for (let cId in clustersMap) {
+                        if (parseInt(cId) === labels[i]) continue;
+                        const otherMembers = clustersMap[cId];
+                        let sum = 0;
+                        for (let oId of otherMembers) {
+                            sum += dist2D(currentPoints[i], currentPoints[oId]);
+                        }
+                        const avg = sum / otherMembers.length;
+                        if (avg < minOther) minOther = avg;
+                    }
+
+                    const b_i = minOther;
+                    const max_ab = Math.max(a_i, b_i);
+                    const s_i = max_ab > 0 ? (b_i - a_i) / max_ab : 0;
+                    totalSil += s_i;
+                    valid++;
+                }
+            }
+
+            const sil = valid > 0 ? totalSil / valid : 0;
+            return { cpcc, sil };
+        }
+
+        function getLCAHeight(node, idA, idB) {
+            if (!node || node.isLeaf) return 0;
+            const inL_A = node.left && node.left.members.includes(idA);
+            const inL_B = node.left && node.left.members.includes(idB);
+
+            if (inL_A && inL_B) return getLCAHeight(node.left, idA, idB);
+            const inR_A = node.right && node.right.members.includes(idA);
+            const inR_B = node.right && node.right.members.includes(idB);
+            if (inR_A && inR_B) return getLCAHeight(node.right, idA, idB);
+
+            return node.height;
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO SCATTER 2D (CANVAS)
+        // ==========================================
+        function renderScatter(method, labels) {
+            const canvas = document.getElementById(`canvas-${method}`);
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grade suave
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 30) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 30) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+
+            // Normaliza coordenadas dos pontos para caber na caixa de visualização
+            const minX = Math.min(...currentPoints.map(p => p.x));
+            const maxX = Math.max(...currentPoints.map(p => p.x));
+            const minY = Math.min(...currentPoints.map(p => p.y));
+            const maxY = Math.max(...currentPoints.map(p => p.y));
+
+            const isSingle = currentViewMode !== 'all';
+            const pad = isSingle ? 36 : 24;
+            const scaleX = (w - 2 * pad) / (maxX - minX || 1);
+            const scaleY = (h - 2 * pad) / (maxY - minY || 1);
+            const scale = Math.min(scaleX, scaleY);
+
+            const offsetX = (w - (maxX - minX) * scale) / 2;
+            const offsetY = (h - (maxY - minY) * scale) / 2;
+
+            function toScreen(p) {
+                return {
+                    x: offsetX + (p.x - minX) * scale,
+                    y: offsetY + (p.y - minY) * scale
+                };
+            }
+
+            // Linha de fusão da iteração atual (se em passo a passo)
+            if (globalStepIndex > 0 && globalStepIndex < histories[method].length) {
+                const hist = histories[method][globalStepIndex];
+                if (hist.mergedA && hist.mergedB) {
+                    const cA = hist.mergedA;
+                    const cB = hist.mergedB;
+                    const wA = hist.witnessA;
+                    const wB = hist.witnessB;
+
+                    if (method === 'single' && wA !== null && wB !== null) {
+                        const sA = toScreen(currentPoints[wA]);
+                        const sB = toScreen(currentPoints[wB]);
+
+                        // SINGLE LINKAGE: Linha tracejada conectando EXATAMENTE os 2 vizinhos mais próximos
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = isSingle ? 3.2 : 2.4;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(sA.x, sA.y);
+                        ctx.lineTo(sB.x, sB.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        // Halo duplo nos 2 pontos determinantes
+                        const r1 = isSingle ? 14 : 10;
+                        const r2 = isSingle ? 21 : 15;
+                        [sA, sB].forEach(sp => {
+                            ctx.beginPath();
+                            ctx.arc(sp.x, sp.y, r1, 0, Math.PI * 2);
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = isSingle ? 2.4 : 1.8;
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.arc(sp.x, sp.y, r2, 0, Math.PI * 2);
+                            ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+                            ctx.lineWidth = isSingle ? 1.6 : 1.2;
+                            ctx.stroke();
+                        });
+
+                        drawScatterBadge(ctx, (sA.x + sB.x) / 2, (sA.y + sB.y) / 2, `d_min=${hist.dist.toFixed(1)}`, '#f59e0b', isSingle);
+
+                    } else if (method === 'complete' && wA !== null && wB !== null) {
+                        const sA = toScreen(currentPoints[wA]);
+                        const sB = toScreen(currentPoints[wB]);
+
+                        // COMPLETE LINKAGE: Linha entre os 2 pontos mais distantes (pior caso)
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.lineWidth = isSingle ? 3.2 : 2.4;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(sA.x, sA.y);
+                        ctx.lineTo(sB.x, sB.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        const r1 = isSingle ? 14 : 10;
+                        const r2 = isSingle ? 21 : 15;
+                        [sA, sB].forEach(sp => {
+                            ctx.beginPath();
+                            ctx.arc(sp.x, sp.y, r1, 0, Math.PI * 2);
+                            ctx.strokeStyle = '#38bdf8';
+                            ctx.lineWidth = isSingle ? 2.4 : 1.8;
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.arc(sp.x, sp.y, r2, 0, Math.PI * 2);
+                            ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+                            ctx.lineWidth = isSingle ? 1.6 : 1.2;
+                            ctx.stroke();
+                        });
+
+                        drawScatterBadge(ctx, (sA.x + sB.x) / 2, (sA.y + sB.y) / 2, `d_max=${hist.dist.toFixed(1)}`, '#38bdf8', isSingle);
+
+                    } else if (method === 'average') {
+                        // AVERAGE LINKAGE: Linhas tênues entre todos os pares cruzados
+                        ctx.strokeStyle = 'rgba(245, 158, 11, 0.16)';
+                        ctx.lineWidth = isSingle ? 1.5 : 1;
+                        ctx.setLineDash([2, 2]);
+                        cA.members.forEach(i => {
+                            cB.members.forEach(j => {
+                                const spI = toScreen(currentPoints[i]);
+                                const spJ = toScreen(currentPoints[j]);
+                                ctx.beginPath();
+                                ctx.moveTo(spI.x, spI.y);
+                                ctx.lineTo(spJ.x, spJ.y);
+                                ctx.stroke();
+                            });
+                        });
+                        ctx.setLineDash([]);
+
+                        // Linha entre centróides
+                        const sA = toScreen(cA.centroid);
+                        const sB = toScreen(cB.centroid);
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = isSingle ? 2.8 : 2;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(sA.x, sA.y);
+                        ctx.lineTo(sB.x, sB.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        drawMiniCentroid(ctx, sA, 'μ₁', '#f59e0b', isSingle);
+                        drawMiniCentroid(ctx, sB, 'μ₂', '#f59e0b', isSingle);
+                        drawScatterBadge(ctx, (sA.x + sB.x) / 2, (sA.y + sB.y) / 2, `d_méd=${hist.dist.toFixed(1)}`, '#f59e0b', isSingle);
+
+                    } else if (method === 'ward') {
+                        // WARD: Linhas de inércia para os centróides e ligação entre eles
+                        const sA = toScreen(cA.centroid);
+                        const sB = toScreen(cB.centroid);
+
+                        ctx.strokeStyle = 'rgba(236, 72, 153, 0.25)';
+                        ctx.lineWidth = isSingle ? 1.5 : 1;
+                        ctx.setLineDash([2, 2]);
+                        cA.members.forEach(i => {
+                            const spI = toScreen(currentPoints[i]);
+                            ctx.beginPath(); ctx.moveTo(spI.x, spI.y); ctx.lineTo(sA.x, sA.y); ctx.stroke();
+                        });
+                        cB.members.forEach(j => {
+                            const spJ = toScreen(currentPoints[j]);
+                            ctx.beginPath(); ctx.moveTo(spJ.x, spJ.y); ctx.lineTo(sB.x, sB.y); ctx.stroke();
+                        });
+                        ctx.setLineDash([]);
+
+                        // Linha principal entre centróides
+                        ctx.strokeStyle = '#ec4899';
+                        ctx.lineWidth = isSingle ? 3.2 : 2.4;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(sA.x, sA.y);
+                        ctx.lineTo(sB.x, sB.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        drawMiniCentroid(ctx, sA, 'μ_A', '#ec4899', isSingle);
+                        drawMiniCentroid(ctx, sB, 'μ_B', '#ec4899', isSingle);
+                        drawScatterBadge(ctx, (sA.x + sB.x) / 2, (sA.y + sB.y) / 2, `ΔESS=${hist.dist.toFixed(1)}`, '#ec4899', isSingle);
+                    }
+                }
+            }
+
+            // Desenha os pontos coloridos
+            currentPoints.forEach((p, idx) => {
+                const sp = toScreen(p);
+                const cId = labels[idx];
+                const color = CLUSTER_COLORS[cId % CLUSTER_COLORS.length];
+
+                let isWitness = false;
+                let witnessColor = '#f59e0b';
+                if (globalStepIndex > 0 && globalStepIndex < histories[method].length) {
+                    const h = histories[method][globalStepIndex];
+                    if ((h.witnessA === idx || h.witnessB === idx) && (method === 'single' || method === 'complete')) {
+                        isWitness = true;
+                        witnessColor = method === 'single' ? '#f59e0b' : '#38bdf8';
+                    }
+                }
+
+                const haloR = isWitness ? (isSingle ? 15 : 11) : (isSingle ? 11 : 8);
+                const coreR = isWitness ? (isSingle ? 7.5 : 5.8) : (isSingle ? 6 : 4.5);
+
+                // Halo
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, haloR, 0, Math.PI * 2);
+                ctx.fillStyle = isWitness ? witnessColor : color;
+                ctx.globalAlpha = isWitness ? 0.45 : 0.25;
+                ctx.fill();
+
+                // Núcleo
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, coreR, 0, Math.PI * 2);
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = isWitness ? witnessColor : color;
+                ctx.fill();
+                ctx.lineWidth = isWitness ? (isSingle ? 2.4 : 1.8) : (isSingle ? 1.6 : 1.2);
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Rótulo
+                ctx.fillStyle = isWitness ? '#ffffff' : '#cbd5e1';
+                ctx.font = isWitness ? (isSingle ? 'bold 12px monospace' : 'bold 10px monospace') : (isSingle ? '11px monospace' : '9px monospace');
+                const lbl = p.label ? p.label : p.id;
+                ctx.fillText(lbl, sp.x + (isSingle ? 8 : 6), sp.y - (isSingle ? 8 : 6));
+            });
+        }
+
+        // ==========================================
+        // AUXILIARES VISUAIS DE RENDERIZAÇÃO
+        // ==========================================
+        function drawMiniCentroid(ctx, pt, label, color = '#f59e0b', isSingle = false) {
+            ctx.save();
+            const r = isSingle ? 8 : 6;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 2.2 : 1.8;
+            ctx.stroke();
+
+            ctx.beginPath();
+            const arm = isSingle ? 5 : 3.5;
+            ctx.moveTo(pt.x - arm, pt.y);
+            ctx.lineTo(pt.x + arm, pt.y);
+            ctx.moveTo(pt.x, pt.y - arm);
+            ctx.lineTo(pt.x, pt.y + arm);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 1.6 : 1.2;
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.font = isSingle ? 'bold 11px sans-serif' : 'bold 9px sans-serif';
+            ctx.fillText(label, pt.x + (isSingle ? 9 : 7), pt.y - (isSingle ? 6 : 4));
+            ctx.restore();
+        }
+
+        function drawScatterBadge(ctx, x, y, text, color = '#f59e0b', isSingle = false) {
+            ctx.save();
+            ctx.font = isSingle ? 'bold 11px monospace' : 'bold 9px monospace';
+            const m = ctx.measureText(text);
+            const padX = isSingle ? 9 : 5;
+            const w = m.width + padX * 2;
+            const h = isSingle ? 19 : 15;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+            ctx.fillRect(x - w / 2, y - h / 2, w, h);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 1.5 : 1.2;
+            ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, x, y);
+            ctx.restore();
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO DENDROGRAMA (SVG)
+        // ==========================================
+        function renderDendrogram(method, labels) {
+            const svg = document.getElementById(`svg-${method}`);
+            svg.innerHTML = '';
+            const root = trees[method];
+            if (!root) return;
+
+            const rect = svg.getBoundingClientRect();
+            const width = rect.width || 200;
+            const height = rect.height || 330;
+            const isSingle = currentViewMode !== 'all';
+            const padX = isSingle ? 35 : 22;
+            const padTop = isSingle ? 28 : 22;
+            const padBottom = isSingle ? 36 : 28;
+
+            const maxH = Math.max(root.height, 1e-4);
+
+            const leaves = [];
+            function getLeaves(n) {
+                if (!n) return;
+                if (n.isLeaf) { leaves.push(n); return; }
+                getLeaves(n.left);
+                getLeaves(n.right);
+            }
+            getLeaves(root);
+
+            const leafStep = (width - 2 * padX) / (leaves.length - 1 || 1);
+            leaves.forEach((l, i) => l.xPos = padX + i * leafStep);
+
+            function yPos(hVal) {
+                const avail = height - padTop - padBottom;
+                return height - padBottom - (hVal / maxH) * avail;
+            }
+
+            function drawNode(n) {
+                if (!n) return 0;
+                if (n.isLeaf) {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', n.xPos);
+                    text.setAttribute('y', height - padBottom + (isSingle ? 18 : 14));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-size', isSingle ? '11px' : '9px');
+                    text.setAttribute('font-family', 'monospace');
+                    text.setAttribute('fill', '#94a3b8');
+                    text.textContent = n.name;
+                    svg.appendChild(text);
+                    return n.xPos;
+                }
+
+                const xL = drawNode(n.left);
+                const xR = drawNode(n.right);
+                n.xPos = (xL + xR) / 2;
+
+                const yN = yPos(n.height);
+                const yL = yPos(n.left.height);
+                const yR = yPos(n.right.height);
+
+                // Cor do ramo baseada no cluster do primeiro membro
+                const sampleIdx = n.members[0];
+                const cId = labels[sampleIdx];
+                const branchColor = CLUSTER_COLORS[cId % CLUSTER_COLORS.length] || '#64748b';
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${xL} ${yL} L ${xL} ${yN} L ${xR} ${yN} L ${xR} ${yR}`);
+                path.setAttribute('stroke', branchColor);
+                path.setAttribute('stroke-width', isSingle ? '2.4' : '1.8');
+                path.setAttribute('fill', 'none');
+                svg.appendChild(path);
+
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', n.xPos);
+                circ.setAttribute('cy', yN);
+                circ.setAttribute('r', isSingle ? '3.5' : '2.5');
+                circ.setAttribute('fill', branchColor);
+                svg.appendChild(circ);
+
+                return n.xPos;
+            }
+
+            drawNode(root);
+
+            // Altura máxima indicada no topo
+            const topTag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            topTag.setAttribute('x', width - padX);
+            topTag.setAttribute('y', isSingle ? 18 : 14);
+            topTag.setAttribute('text-anchor', 'end');
+            topTag.setAttribute('font-size', isSingle ? '11px' : '9px');
+            topTag.setAttribute('font-weight', 'bold');
+            topTag.setAttribute('font-family', 'monospace');
+            topTag.setAttribute('fill', '#94a3b8');
+            topTag.textContent = `H_max: ${maxH.toFixed(1)}`;
+            svg.appendChild(topTag);
+        }
+
+        // ==========================================
+        // ATUALIZAÇÃO GERAL SINCRONIZADA
+        // ==========================================
+        function updateAllViews() {
+            methods.forEach(method => {
+                const isVisible = (currentViewMode === 'all' || currentViewMode === method);
+                const card = document.getElementById(`card-${method}`);
+                if (card) {
+                    card.style.display = isVisible ? 'flex' : 'none';
+                }
+
+                if (isVisible) {
+                    const labels = getClusterAssignment(method, selectedK, globalStepIndex);
+                    renderScatter(method, labels);
+                    renderDendrogram(method, labels);
+
+                    const metrics = computeMethodMetrics(method, labels);
+                    document.getElementById(`cpcc-${method}`).textContent = metrics.cpcc.toFixed(3);
+                    document.getElementById(`sil-${method}`).textContent = metrics.sil.toFixed(3);
+                }
+            });
+
+            // Atualiza banner de progresso
+            const totalSteps = currentPoints.length - 1;
+            const progressEl = document.getElementById('stepProgress');
+            if (globalStepIndex === -1) {
+                progressEl.textContent = `Visualização Completa: Corte em k = ${selectedK}`;
+            } else {
+                progressEl.textContent = `Passo Sincronizado: ${globalStepIndex} de ${totalSteps}`;
+            }
+        }
+
+        // ==========================================
+        // ALTERNÂNCIA DE MODO (TODOS VS 1 DE CADA VEZ)
+        // ==========================================
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const grid = document.querySelector('.quadrant-grid');
+            const select = document.getElementById('viewModeSelect');
+            if (select && select.value !== mode) {
+                select.value = mode;
+            }
+
+            // Atualiza abas visuais
+            document.querySelectorAll('#viewModeTabs .tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-view') === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (mode === 'all') {
+                grid.classList.remove('single-view');
+                methods.forEach(m => {
+                    const card = document.getElementById(`card-${m}`);
+                    if (card) card.style.display = 'flex';
+                });
+                setLog("Modo de exibição: Todos os 4 métodos em grade comparativa (2×2).");
+            } else {
+                grid.classList.add('single-view');
+                methods.forEach(m => {
+                    const card = document.getElementById(`card-${m}`);
+                    if (card) {
+                        card.style.display = (m === mode) ? 'flex' : 'none';
+                    }
+                });
+                const names = {
+                    single: 'Single Linkage (Mínimo / Vizinho Mais Próximo)',
+                    complete: 'Complete Linkage (Máximo / Vizinho Mais Distante)',
+                    average: 'Average Linkage (Média UPGMA)',
+                    ward: "Ward's Method (Mínima Variância ESS)"
+                };
+                setLog(`Modo ampliado (Tela Cheia): Exibindo exclusivamente ${names[mode]}.`);
+            }
+
+            // Aguarda aplicação de estilos CSS e repinta com as novas dimensões
+            requestAnimationFrame(() => {
+                resizeAllCanvases();
+            });
+        }
+
+        // ==========================================
+        // CARREGAMENTO DO DATASET FIXO
+        // ==========================================
+        function loadDataset(key) {
+            const data = FIXED_DATASETS[key];
+            if (!data) return;
+
+            currentPoints = data.points.map(p => ({ ...p }));
+            document.getElementById('datasetDesc').textContent = data.desc;
+
+            // Pré-calcula a árvore e histórico de cada método para este dataset fixo
+            methods.forEach(m => {
+                const res = buildTreeForMethod(m);
+                trees[m] = res.root;
+                histories[m] = res.history;
+            });
+
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Dataset '${data.title}' carregado com sucesso com ${currentPoints.length} pontos fixos.`);
+        }
+
+        function setLog(msg) {
+            document.getElementById('logText').textContent = msg;
+        }
+
+        // ==========================================
+        // EVENTOS
+        // ==========================================
+        document.getElementById('viewModeSelect').addEventListener('change', (e) => {
+            setViewMode(e.target.value);
+        });
+
+        document.querySelectorAll('#viewModeTabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.getAttribute('data-view');
+                if (view) setViewMode(view);
+            });
+        });
+
+        document.getElementById('datasetSelect').addEventListener('change', (e) => {
+            loadDataset(e.target.value);
+        });
+
+        document.getElementById('kSelect').addEventListener('change', (e) => {
+            selectedK = parseInt(e.target.value);
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Número de clusters alvo alterado para k = ${selectedK}.`);
+        });
+
+        function advanceAll() {
+            const totalSteps = currentPoints.length - 1;
+            if (globalStepIndex === -1) {
+                globalStepIndex = 1;
+            } else if (globalStepIndex < totalSteps) {
+                globalStepIndex++;
+            } else {
+                setLog("Todas as fusões já foram concluídas em todos os 4 métodos!");
+                return;
+            }
+            updateAllViews();
+            const sHist = histories['single'][globalStepIndex];
+            let desc = '';
+            if (sHist && sHist.witnessA !== null && sHist.witnessB !== null) {
+                const lA = currentPoints[sHist.witnessA].label || `P${sHist.witnessA}`;
+                const lB = currentPoints[sHist.witnessB].label || `P${sHist.witnessB}`;
+                desc = ` | Single Linkage fundiu via par mais próximo (${lA}, ${lB}, d=${sHist.dist.toFixed(1)})`;
+            }
+            setLog(`Passo ${globalStepIndex}/${totalSteps} sincronizado${desc}`);
+        }
+
+        function goBackAll() {
+            const totalSteps = currentPoints.length - 1;
+            if (globalStepIndex === -1) {
+                globalStepIndex = totalSteps - 1;
+            } else if (globalStepIndex > 0) {
+                globalStepIndex--;
+            } else {
+                setLog("Você já está no passo 0 (pontos iniciais isolados).");
+                return;
+            }
+            updateAllViews();
+            const sHist = histories['single'][globalStepIndex];
+            let desc = '';
+            if (sHist && sHist.witnessA !== null && sHist.witnessB !== null) {
+                const lA = currentPoints[sHist.witnessA].label || `P${sHist.witnessA}`;
+                const lB = currentPoints[sHist.witnessB].label || `P${sHist.witnessB}`;
+                desc = ` | Single Linkage no passo ${globalStepIndex}: (${lA}, ${lB}, d=${sHist.dist.toFixed(1)})`;
+            }
+            setLog(`Retornado para o passo ${globalStepIndex}/${totalSteps} sincronizado${desc}`);
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', advanceAll);
+        document.getElementById('prevBtn').addEventListener('click', goBackAll);
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Visão resetada para o corte contínuo em k = ${selectedK}.`);
+        });
+
+        // Atalhos de Teclado (Avançar/Voltar + Teclas Numéricas 0..4 para trocar de método)
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                e.preventDefault();
+                advanceAll();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                goBackAll();
+            } else if (e.key === '1') {
+                e.preventDefault();
+                setViewMode('single');
+            } else if (e.key === '2') {
+                e.preventDefault();
+                setViewMode('complete');
+            } else if (e.key === '3') {
+                e.preventDefault();
+                setViewMode('average');
+            } else if (e.key === '4') {
+                e.preventDefault();
+                setViewMode('ward');
+            } else if (e.key === '0' || e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                setViewMode('all');
+            }
+        });
+
+        // Redimensionamento Inteligente
+        function resizeAllCanvases() {
+            methods.forEach(m => {
+                const card = document.getElementById(`card-${m}`);
+                const isVisible = (currentViewMode === 'all' || currentViewMode === m);
+                if (card) {
+                    card.style.display = isVisible ? 'flex' : 'none';
+                }
+                if (isVisible) {
+                    const cv = document.getElementById(`canvas-${m}`);
+                    const parent = cv.parentElement;
+                    if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
+                        cv.width = parent.clientWidth;
+                        cv.height = parent.clientHeight;
+                    }
+                }
+            });
+            updateAllViews();
+        }
+
+        window.addEventListener('resize', resizeAllCanvases);
+
+        // Inicialização
+        setTimeout(() => {
+            setViewMode('all');
+            loadDataset('chaining');
+        }, 100);
+
+    </script>
+</body>
+</html>

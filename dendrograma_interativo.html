@@ -804,14 +804,18 @@
                 let minDistance = Infinity;
                 let bestI = -1;
                 let bestJ = -1;
+                let bestWitnessA = null;
+                let bestWitnessB = null;
 
                 for (let i = 0; i < activeClusters.length; i++) {
                     for (let j = i + 1; j < activeClusters.length; j++) {
-                        const dist = clusterDistance(activeClusters[i], activeClusters[j], linkageMethod);
-                        if (dist < minDistance) {
-                            minDistance = dist;
+                        const detail = getClusterDistanceDetail(activeClusters[i], activeClusters[j], linkageMethod);
+                        if (detail.dist < minDistance) {
+                            minDistance = detail.dist;
                             bestI = i;
                             bestJ = j;
+                            bestWitnessA = detail.witnessA;
+                            bestWitnessB = detail.witnessB;
                         }
                     }
                 }
@@ -843,6 +847,21 @@
                 activeClusters.splice(Math.min(bestI, bestJ), 1);
                 activeClusters.push(mergedNode);
 
+                let methodDesc = '';
+                if (linkageMethod === 'single' && bestWitnessA !== null && bestWitnessB !== null) {
+                    const lA = points[bestWitnessA].label || `P${bestWitnessA}`;
+                    const lB = points[bestWitnessB].label || `P${bestWitnessB}`;
+                    methodDesc = ` [Vizinhos mais próximos: ${lA} e ${lB}]`;
+                } else if (linkageMethod === 'complete' && bestWitnessA !== null && bestWitnessB !== null) {
+                    const lA = points[bestWitnessA].label || `P${bestWitnessA}`;
+                    const lB = points[bestWitnessB].label || `P${bestWitnessB}`;
+                    methodDesc = ` [Pontos mais distantes: ${lA} e ${lB}]`;
+                } else if (linkageMethod === 'ward') {
+                    methodDesc = ` [Inércia entre centróides μ]`;
+                } else if (linkageMethod === 'average') {
+                    methodDesc = ` [Média de todos os pares]`;
+                }
+
                 mergeHistory.push({
                     step: step + 1,
                     activeClusters: activeClusters.map(c => ({ ...c, members: [...c.members] })),
@@ -850,7 +869,10 @@
                     mergedB: cB,
                     mergedNode: mergedNode,
                     distance: minDistance,
-                    actionDescription: `Fundido ${cA.name} com ${cB.name} (Distância: ${minDistance.toFixed(2)}).`
+                    witnessA: bestWitnessA,
+                    witnessB: bestWitnessB,
+                    method: linkageMethod,
+                    actionDescription: `Fundido ${cA.name} com ${cB.name} (Distância: ${minDistance.toFixed(2)}${methodDesc}).`
                 });
             }
 
@@ -1025,29 +1047,42 @@
             return [groupL, groupR];
         }
 
-        // Dissimilaridade entre clusters conforme o linkage
-        function clusterDistance(c1, c2, method) {
+        // ==========================================
+        // DISSIMILARIDADE ENTRE CLUSTERS & PONTOS TESTEMUNHAS
+        // ==========================================
+        function getClusterDistanceDetail(c1, c2, method) {
             const m1 = c1.members;
             const m2 = c2.members;
+            let dist = 0;
+            let witnessA = null;
+            let witnessB = null;
 
             if (method === 'single') {
                 let minD = Infinity;
                 for (let i of m1) {
                     for (let j of m2) {
                         const d = calcDist(points[i], points[j]);
-                        if (d < minD) minD = d;
+                        if (d < minD) {
+                            minD = d;
+                            witnessA = i;
+                            witnessB = j;
+                        }
                     }
                 }
-                return minD;
+                dist = minD;
             } else if (method === 'complete') {
                 let maxD = -Infinity;
                 for (let i of m1) {
                     for (let j of m2) {
                         const d = calcDist(points[i], points[j]);
-                        if (d > maxD) maxD = d;
+                        if (d > maxD) {
+                            maxD = d;
+                            witnessA = i;
+                            witnessB = j;
+                        }
                     }
                 }
-                return maxD;
+                dist = maxD;
             } else if (method === 'average') {
                 let sumD = 0;
                 for (let i of m1) {
@@ -1055,15 +1090,19 @@
                         sumD += calcDist(points[i], points[j]);
                     }
                 }
-                return sumD / (m1.length * m2.length);
+                dist = sumD / (m1.length * m2.length);
             } else if (method === 'ward') {
                 const dx = c1.centroid.x - c2.centroid.x;
                 const dy = c1.centroid.y - c2.centroid.y;
                 const distSq = dx * dx + dy * dy;
                 const factor = (m1.length * m2.length) / (m1.length + m2.length);
-                return Math.sqrt(factor * distSq);
+                dist = Math.sqrt(factor * distSq);
             }
-            return 0;
+            return { dist, witnessA, witnessB };
+        }
+
+        function clusterDistance(c1, c2, method) {
+            return getClusterDistanceDetail(c1, c2, method).dist;
         }
 
         // ==========================================
@@ -1095,17 +1134,32 @@
 
             // Modo contínuo (corte por altura H)
             let clusterIdCounter = 1;
+            const cutClusters = [];
             function traverse(node) {
                 if (!node) return;
                 if (node.isLeaf) {
-                    points[node.id].cluster = clusterIdCounter++;
+                    points[node.id].cluster = clusterIdCounter;
+                    cutClusters.push({
+                        id: clusterIdCounter,
+                        name: node.name || `P${node.id}`,
+                        members: [node.id],
+                        centroid: node.centroid
+                    });
+                    clusterIdCounter++;
                     return;
                 }
                 if (node.height <= cutoff) {
-                    const assignedId = clusterIdCounter++;
+                    const assignedId = clusterIdCounter;
                     node.members.forEach(idx => {
                         points[idx].cluster = assignedId;
                     });
+                    cutClusters.push({
+                        id: assignedId,
+                        name: node.name || `C${assignedId}`,
+                        members: [...node.members],
+                        centroid: node.centroid
+                    });
+                    clusterIdCounter++;
                 } else {
                     traverse(node.left);
                     traverse(node.right);
@@ -1114,6 +1168,7 @@
 
             traverse(root);
             remapClusterColors();
+            return cutClusters;
         }
 
         function remapClusterColors() {
@@ -1399,59 +1454,276 @@
                 if (currentStrategy === 'bottom-up' && stepIndex < mergeHistory.length && stepIndex > 0) {
                     const currentMerge = mergeHistory[stepIndex];
                     if (currentMerge.mergedA && currentMerge.mergedB) {
-                        ctx.strokeStyle = '#f59e0b';
-                        ctx.lineWidth = 2.5;
-                        ctx.setLineDash([5, 5]);
-                        ctx.beginPath();
-                        ctx.moveTo(currentMerge.mergedA.centroid.x, currentMerge.mergedA.centroid.y);
-                        ctx.lineTo(currentMerge.mergedB.centroid.x, currentMerge.mergedB.centroid.y);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
+                        const cA = currentMerge.mergedA;
+                        const cB = currentMerge.mergedB;
+                        const wA = currentMerge.witnessA;
+                        const wB = currentMerge.witnessB;
+                        const method = currentMerge.method || linkageMethod;
+
+                        if (method === 'single' && wA !== null && wB !== null && points[wA] && points[wB]) {
+                            const pA = points[wA];
+                            const pB = points[wB];
+
+                            // SINGLE LINKAGE: Linha conectando ESTRITAMENTE os 2 vizinhos mais próximos
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = 2.8;
+                            ctx.setLineDash([5, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(pA.x, pA.y);
+                            ctx.lineTo(pB.x, pB.y);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+
+                            // Anéis luminosos ao redor dos 2 pontos determinantes
+                            [pA, pB].forEach(pt => {
+                                ctx.beginPath();
+                                ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+                                ctx.strokeStyle = 'rgba(245, 158, 11, 0.9)';
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+
+                                ctx.beginPath();
+                                ctx.arc(pt.x, pt.y, 20, 0, Math.PI * 2);
+                                ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+                                ctx.lineWidth = 1.5;
+                                ctx.stroke();
+                            });
+
+                            const midX = (pA.x + pB.x) / 2;
+                            const midY = (pA.y + pB.y) / 2;
+                            drawDistanceBadge(midX, midY, `d_min = ${currentMerge.distance.toFixed(2)} (Vizinhos Mais Próximos)`, '#f59e0b');
+
+                        } else if (method === 'complete' && wA !== null && wB !== null && points[wA] && points[wB]) {
+                            const pA = points[wA];
+                            const pB = points[wB];
+
+                            // COMPLETE LINKAGE: Linha conectando os 2 pontos MAIS DISTANTES (pior caso)
+                            ctx.strokeStyle = '#38bdf8';
+                            ctx.lineWidth = 2.8;
+                            ctx.setLineDash([5, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(pA.x, pA.y);
+                            ctx.lineTo(pB.x, pB.y);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+
+                            [pA, pB].forEach(pt => {
+                                ctx.beginPath();
+                                ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+                                ctx.strokeStyle = 'rgba(56, 189, 248, 0.9)';
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+
+                                ctx.beginPath();
+                                ctx.arc(pt.x, pt.y, 20, 0, Math.PI * 2);
+                                ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+                                ctx.lineWidth = 1.5;
+                                ctx.stroke();
+                            });
+
+                            const midX = (pA.x + pB.x) / 2;
+                            const midY = (pA.y + pB.y) / 2;
+                            drawDistanceBadge(midX, midY, `d_max = ${currentMerge.distance.toFixed(2)} (Pontos Mais Distantes)`, '#38bdf8');
+
+                        } else if (method === 'average') {
+                            // AVERAGE LINKAGE: Linhas tênues de todos os pares entre os clusters
+                            ctx.strokeStyle = 'rgba(245, 158, 11, 0.16)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([2, 2]);
+                            cA.members.forEach(i => {
+                                cB.members.forEach(j => {
+                                    ctx.beginPath();
+                                    ctx.moveTo(points[i].x, points[i].y);
+                                    ctx.lineTo(points[j].x, points[j].y);
+                                    ctx.stroke();
+                                });
+                            });
+                            ctx.setLineDash([]);
+
+                            // Linha tracejada entre centróides
+                            ctx.strokeStyle = '#f59e0b';
+                            ctx.lineWidth = 2.5;
+                            ctx.setLineDash([5, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(cA.centroid.x, cA.centroid.y);
+                            ctx.lineTo(cB.centroid.x, cB.centroid.y);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+
+                            drawCentroidMarker(cA.centroid, 'μ₁');
+                            drawCentroidMarker(cB.centroid, 'μ₂');
+
+                            const midX = (cA.centroid.x + cB.centroid.x) / 2;
+                            const midY = (cA.centroid.y + cB.centroid.y) / 2;
+                            drawDistanceBadge(midX, midY, `d_méd = ${currentMerge.distance.toFixed(2)} (Média de Todos os Pares)`, '#f59e0b');
+
+                        } else if (method === 'ward') {
+                            // WARD: Linhas de inércia para os centróides e ligação entre eles
+                            ctx.strokeStyle = 'rgba(236, 72, 153, 0.28)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([2, 2]);
+                            cA.members.forEach(i => {
+                                ctx.beginPath();
+                                ctx.moveTo(points[i].x, points[i].y);
+                                ctx.lineTo(cA.centroid.x, cA.centroid.y);
+                                ctx.stroke();
+                            });
+                            cB.members.forEach(j => {
+                                ctx.beginPath();
+                                ctx.moveTo(points[j].x, points[j].y);
+                                ctx.lineTo(cB.centroid.x, cB.centroid.y);
+                                ctx.stroke();
+                            });
+                            ctx.setLineDash([]);
+
+                            // Linha principal entre centróides
+                            ctx.strokeStyle = '#ec4899';
+                            ctx.lineWidth = 3;
+                            ctx.setLineDash([5, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(cA.centroid.x, cA.centroid.y);
+                            ctx.lineTo(cB.centroid.x, cB.centroid.y);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+
+                            drawCentroidMarker(cA.centroid, 'μ_A', '#ec4899');
+                            drawCentroidMarker(cB.centroid, 'μ_B', '#ec4899');
+
+                            const midX = (cA.centroid.x + cB.centroid.x) / 2;
+                            const midY = (cA.centroid.y + cB.centroid.y) / 2;
+                            drawDistanceBadge(midX, midY, `ΔESS = ${currentMerge.distance.toFixed(2)} (Centróides μ_A - μ_B)`, '#ec4899');
+                        }
                     }
                 } else if (currentStrategy === 'top-down' && stepIndex < splitHistory.length && stepIndex > 0) {
                     const currentSplit = splitHistory[stepIndex];
                     if (currentSplit.subL && currentSplit.subR) {
+                        const sL = currentSplit.subL;
+                        const sR = currentSplit.subR;
+
+                        // Linhas de dispersão para os novos subcentróides
+                        ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([2, 2]);
+                        sL.members.forEach(i => {
+                            ctx.beginPath();
+                            ctx.moveTo(points[i].x, points[i].y);
+                            ctx.lineTo(sL.centroid.x, sL.centroid.y);
+                            ctx.stroke();
+                        });
+                        sR.members.forEach(j => {
+                            ctx.beginPath();
+                            ctx.moveTo(points[j].x, points[j].y);
+                            ctx.lineTo(sR.centroid.x, sR.centroid.y);
+                            ctx.stroke();
+                        });
+                        ctx.setLineDash([]);
+
+                        // Linha de divisão entre os centróides
                         ctx.strokeStyle = '#8b5cf6';
-                        ctx.lineWidth = 2.5;
-                        ctx.setLineDash([5, 5]);
+                        ctx.lineWidth = 2.8;
+                        ctx.setLineDash([5, 4]);
                         ctx.beginPath();
-                        ctx.moveTo(currentSplit.subL.centroid.x, currentSplit.subL.centroid.y);
-                        ctx.lineTo(currentSplit.subR.centroid.x, currentSplit.subR.centroid.y);
+                        ctx.moveTo(sL.centroid.x, sL.centroid.y);
+                        ctx.lineTo(sR.centroid.x, sR.centroid.y);
                         ctx.stroke();
                         ctx.setLineDash([]);
+
+                        drawCentroidMarker(sL.centroid, 'μ₁', '#8b5cf6');
+                        drawCentroidMarker(sR.centroid, 'μ₂', '#8b5cf6');
+
+                        const midX = (sL.centroid.x + sR.centroid.x) / 2;
+                        const midY = (sL.centroid.y + sR.centroid.y) / 2;
+                        drawDistanceBadge(midX, midY, `Diâmetro: ${currentSplit.diameter.toFixed(2)} (Bisseção K-Means)`, '#8b5cf6');
                     }
                 }
             }
 
             // Desenha os pontos
-            points.forEach(p => {
+            points.forEach((p, idx) => {
                 const color = CLUSTER_COLORS[p.clusterColorIndex % CLUSTER_COLORS.length] || COLOR_UNASSIGNED;
+                const isWitness = (stepIndex > 0 && currentStrategy === 'bottom-up' && mergeHistory[stepIndex] && 
+                    (mergeHistory[stepIndex].witnessA === idx || mergeHistory[stepIndex].witnessB === idx) &&
+                    (mergeHistory[stepIndex].method === 'single' || mergeHistory[stepIndex].method === 'complete'));
+                const witnessColor = (isWitness && mergeHistory[stepIndex].method === 'single') ? '#f59e0b' : '#38bdf8';
 
                 // Glow exterior
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.25;
+                ctx.arc(p.x, p.y, isWitness ? 12 : 9, 0, Math.PI * 2);
+                ctx.fillStyle = isWitness ? witnessColor : color;
+                ctx.globalAlpha = isWitness ? 0.45 : 0.25;
                 ctx.fill();
 
                 // Ponto central
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, isWitness ? 6.5 : 5.5, 0, Math.PI * 2);
                 ctx.globalAlpha = 1.0;
-                ctx.fillStyle = color;
+                ctx.fillStyle = isWitness ? witnessColor : color;
                 ctx.fill();
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = isWitness ? 2.2 : 1.5;
                 ctx.strokeStyle = '#ffffff';
                 ctx.stroke();
 
                 // Rótulo
-                ctx.fillStyle = '#cbd5e1';
-                ctx.font = '10px monospace';
+                ctx.fillStyle = isWitness ? '#ffffff' : '#cbd5e1';
+                ctx.font = isWitness ? 'bold 11px monospace' : '10px monospace';
                 const labelText = p.label ? p.label : p.id;
                 ctx.fillText(labelText, p.x + 8, p.y - 8);
             });
 
             pointCountEl.textContent = points.length;
+        }
+
+        // ==========================================
+        // AUXILIARES VISUAIS DE RENDERIZAÇÃO
+        // ==========================================
+        function drawCentroidMarker(centroid, label, color = '#f59e0b') {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(centroid.x, centroid.y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Cruz interna (+)
+            ctx.beginPath();
+            ctx.moveTo(centroid.x - 4.5, centroid.y);
+            ctx.lineTo(centroid.x + 4.5, centroid.y);
+            ctx.moveTo(centroid.x, centroid.y - 4.5);
+            ctx.lineTo(centroid.x, centroid.y + 4.5);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText(label, centroid.x + 8, centroid.y - 5);
+            ctx.restore();
+        }
+
+        function drawDistanceBadge(x, y, text, color = '#f59e0b') {
+            ctx.save();
+            ctx.font = 'bold 10px monospace';
+            const metrics = ctx.measureText(text);
+            const padX = 7;
+            const padY = 4;
+            const boxW = metrics.width + padX * 2;
+            const boxH = 18;
+            const boxX = x - boxW / 2;
+            const boxY = y - boxH / 2;
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+            ctx.fillRect(boxX, boxY, boxW, boxH);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, x, y);
+            ctx.restore();
         }
 
         // ==========================================
@@ -1577,29 +1849,40 @@
         // ==========================================
         // FLUXO PRINCIPAL DE ATUALIZAÇÃO
         // ==========================================
-        function recalculateAndRender() {
+        function recalculateAndRender(isNewMethod = false) {
             let root = null;
             let currentActiveClusters = [];
 
             if (currentStrategy === 'bottom-up') {
                 root = buildBottomUpTree();
                 strategyInfoBanner.innerHTML = '<span>💡 <strong>Estratégia Bottom-Up (AGNES):</strong> Começa com N clusters isolados. A cada iteração, funde o par com menor dissimilaridade na matriz e reduz a dimensão.</span>';
-                if (stepIndex >= 0 && stepIndex < mergeHistory.length) {
-                    currentActiveClusters = mergeHistory[stepIndex].activeClusters;
-                } else if (mergeHistory.length > 0) {
-                    currentActiveClusters = mergeHistory[mergeHistory.length - 1].activeClusters;
-                }
             } else {
                 root = buildTopDownTree();
                 strategyInfoBanner.innerHTML = '<span>💡 <strong>Estratégia Top-Down (DIANA / Bisecting):</strong> Começa com todos os pontos em 1 cluster e divide iterativamente o grupo de maior dispersão em dois subgrupos.</span>';
-                if (stepIndex >= 0 && stepIndex < splitHistory.length) {
-                    currentActiveClusters = splitHistory[stepIndex].activeClusters;
-                } else if (splitHistory.length > 0) {
-                    currentActiveClusters = splitHistory[splitHistory.length - 1].activeClusters;
+            }
+
+            if (root) {
+                maxTreeHeight = Math.max(root.height, 1e-4);
+                cutoffSlider.max = Math.ceil(maxTreeHeight * 1.05 * 10);
+                // Se for um novo método ou se a altura de corte ficou fora dos limites da nova árvore
+                if (isNewMethod || cutoffHeight > maxTreeHeight * 1.02 || cutoffHeight < maxTreeHeight * 0.05) {
+                    cutoffHeight = maxTreeHeight * 0.55;
+                    cutoffSlider.value = cutoffHeight * 10;
+                    cutoffVal.textContent = cutoffHeight.toFixed(2);
                 }
             }
 
-            assignClustersByCutoff(root, cutoffHeight);
+            if (stepIndex >= 0) {
+                if (currentStrategy === 'bottom-up' && stepIndex < mergeHistory.length) {
+                    currentActiveClusters = mergeHistory[stepIndex].activeClusters;
+                } else if (currentStrategy === 'top-down' && stepIndex < splitHistory.length) {
+                    currentActiveClusters = splitHistory[stepIndex].activeClusters;
+                }
+                assignClustersByCutoff(root, cutoffHeight);
+            } else {
+                currentActiveClusters = assignClustersByCutoff(root, cutoffHeight) || [];
+            }
+
             drawScatter();
             drawDendrogram(root);
             computeMetrics(root);
@@ -1646,8 +1929,9 @@
         // Linkage Select
         document.getElementById('linkageSelect').addEventListener('change', (e) => {
             linkageMethod = e.target.value;
+            stepIndex = -1;
             setLog(`Método de ligação alterado para: ${e.target.options[e.target.selectedIndex].text}`);
-            recalculateAndRender();
+            recalculateAndRender(true);
         });
 
         // Metric Select

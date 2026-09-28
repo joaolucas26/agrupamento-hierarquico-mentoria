@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparativo de Agrupamento Top-Down (Estratégia Divisiva) | DIANA vs Bisecting vs Furthest-Pair vs PCA</title>
+    <style>
+        :root {
+            --bg-main: #0a0e17;
+            --bg-card: #131c2e;
+            --bg-card-alt: #1a253c;
+            --border: #263554;
+            --border-highlight: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --diana-color: #f59e0b;       /* Âmbar / Laranja */
+            --bisecting-color: #10b981;   /* Esmeralda / Verde */
+            --furthest-color: #38bdf8;    /* Ciano / Azul Claro */
+            --pca-color: #a855f7;         /* Púrpura / Violeta */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 30px;
+        }
+
+        header {
+            background: linear-gradient(180deg, #162035 0%, #0d1424 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #38bdf8, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-badge {
+            background: rgba(168, 85, 247, 0.15);
+            color: #d8b4fe;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 28px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        select, button {
+            background-color: #1a253c;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: #475569;
+            background-color: #24324f;
+        }
+
+        button.btn-primary {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            border-color: #c084fc;
+            color: #ffffff;
+        }
+
+        button.btn-primary:hover {
+            background: linear-gradient(135deg, #c084fc, #9333ea);
+            box-shadow: 0 2px 12px rgba(168, 85, 247, 0.45);
+        }
+
+        /* BANNER */
+        .dataset-banner {
+            background: rgba(168, 85, 247, 0.06);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 28px;
+            font-size: 0.84rem;
+            color: #d8b4fe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* VIEW MODE TABS */
+        .view-mode-tabs {
+            display: inline-flex;
+            background: #111a2e;
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            gap: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .tab-btn.active {
+            background: #7c3aed;
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(124, 58, 237, 0.45);
+        }
+
+        .tab-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* 4-QUADRANT GRID */
+        .quadrant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 18px 28px;
+            flex: 1;
+            transition: all 0.25s ease;
+        }
+
+        .quadrant-grid.single-view {
+            grid-template-columns: 1fr !important;
+            max-width: 1560px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 16px 28px;
+        }
+
+        .method-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .quadrant-grid.single-view .method-card {
+            border-width: 1.5px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.45);
+        }
+
+        .method-card:hover {
+            border-color: #3e527a;
+        }
+
+        .card-header {
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quadrant-grid.single-view .card-header {
+            padding: 16px 24px;
+        }
+
+        .method-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quadrant-grid.single-view .method-title {
+            font-size: 1.25rem;
+        }
+
+        .method-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .card-metrics {
+            display: flex;
+            gap: 12px;
+            font-size: 0.78rem;
+            font-family: monospace;
+        }
+
+        .quadrant-grid.single-view .card-metrics {
+            font-size: 0.92rem;
+            gap: 16px;
+        }
+
+        .metric-pill {
+            background: #1a253c;
+            border: 1px solid var(--border);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .quadrant-grid.single-view .metric-pill {
+            padding: 5px 12px;
+        }
+
+        .metric-pill strong {
+            color: #ffffff;
+        }
+
+        .card-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 14px;
+            background: #0b111e;
+        }
+
+        .quadrant-grid.single-view .card-body {
+            gap: 20px;
+            padding: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .view-box {
+            position: relative;
+            background: #080d17;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            height: 330px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: height 0.25s ease;
+        }
+
+        .quadrant-grid.single-view .view-box {
+            height: 540px;
+        }
+
+        .view-label {
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            pointer-events: none;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .quadrant-grid.single-view .view-label {
+            font-size: 0.78rem;
+            top: 10px;
+            left: 12px;
+            padding: 3px 9px;
+        }
+
+        .card-footer {
+            padding: 9px 18px;
+            background: rgba(255, 255, 255, 0.01);
+            border-top: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .quadrant-grid.single-view .card-footer {
+            font-size: 0.92rem;
+            padding: 14px 24px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        svg.dendro-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* FOOTER LOG */
+        .footer-log {
+            background: #070a12;
+            border-top: 1px solid var(--border);
+            padding: 10px 28px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #a855f7;
+            box-shadow: 0 0 8px #a855f7;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2">
+                <circle cx="12" cy="4" r="2.5"/><line x1="12" y1="6.5" x2="6" y2="13"/><line x1="12" y1="6.5" x2="18" y2="13"/>
+                <circle cx="6" cy="15" r="2"/><circle cx="18" cy="15" r="2"/>
+                <line x1="6" y1="17" x2="3" y2="21"/><line x1="6" y1="17" x2="9" y2="21"/>
+                <line x1="18" y1="17" x2="15" y2="21"/><line x1="18" y1="17" x2="21" y2="21"/>
+            </svg>
+            <h1>Comparativo de Agrupamento Top-Down (Estratégia Divisiva)</h1>
+            <span class="header-badge">Estratégia Divisiva / Top-Down</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+            Compare DIANA, Bisecting K-Means, Furthest-Pair e PCA Hyperplane Split no mesmo conjunto de pontos
+        </div>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <!-- SELETOR DE MODO -->
+        <div class="control-group">
+            <span class="control-label">Modo:</span>
+            <select id="viewModeSelect">
+                <option value="all" selected>⊞ Todos os 4 (Grade 2×2)</option>
+                <option value="diana">🟠 1. DIANA (Splinter Group)</option>
+                <option value="bisecting">🟢 2. Bisecting K-Means (Mínima Variância)</option>
+                <option value="furthest">🔵 3. Furthest-Pair (2-Medoids / Diâmetro)</option>
+                <option value="pca">🟣 4. PCA Hyperplane Split (PDDP)</option>
+            </select>
+        </div>
+
+        <div class="view-mode-tabs" id="viewModeTabs">
+            <button class="tab-btn active" data-view="all" title="Ver 4 em Grade (Atalho: 0 ou A)">
+                <span>⊞</span> Todos (2×2)
+            </button>
+            <button class="tab-btn" data-view="diana" title="Ver apenas DIANA em tela cheia (Atalho: 1)">
+                <span class="tab-dot" style="background: var(--diana-color);"></span> DIANA
+            </button>
+            <button class="tab-btn" data-view="bisecting" title="Ver apenas Bisecting K-Means em tela cheia (Atalho: 2)">
+                <span class="tab-dot" style="background: var(--bisecting-color);"></span> Bisecting K-Means
+            </button>
+            <button class="tab-btn" data-view="furthest" title="Ver apenas Furthest-Pair em tela cheia (Atalho: 3)">
+                <span class="tab-dot" style="background: var(--furthest-color);"></span> Furthest-Pair
+            </button>
+            <button class="tab-btn" data-view="pca" title="Ver apenas PCA Split em tela cheia (Atalho: 4)">
+                <span class="tab-dot" style="background: var(--pca-color);"></span> PCA Split
+            </button>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Dataset:</span>
+            <select id="datasetSelect">
+                <option value="chaining">1. O Teste da Ponte (Efeito Chaining)</option>
+                <option value="didactic5">2. Exemplo Numérico Manual (5 Pontos A-E)</option>
+                <option value="three_blobs">3. Três Grupos Macroscópicos Bem Separados</option>
+                <option value="outlier">4. Dois Grupos + Outlier Distante</option>
+                <option value="rings">5. Meias-Luas / Curvas (Formato Não-Esférico)</option>
+                <option value="unbalanced">6. Grupos com Densidades e Tamanhos Desiguais</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Corte (k):</span>
+            <select id="kSelect">
+                <option value="2" selected>k = 2</option>
+                <option value="3">k = 3</option>
+                <option value="4">k = 4</option>
+                <option value="5">k = 5</option>
+            </select>
+        </div>
+
+        <div class="control-group" style="margin-left: auto;">
+            <button id="prevBtn" title="Voltar uma divisão (Seta Esquerda ←)">◀ Voltar Divisão</button>
+            <button id="nextBtn" class="btn-primary" title="Avançar uma divisão (Seta Direita →)">Avançar Divisão ▶</button>
+            <button id="resetBtn" title="Resetar para o corte k selecionado">↺ Corte k Selecionado</button>
+        </div>
+    </div>
+
+    <!-- DATASET DESCRIPTION BANNER -->
+    <div class="dataset-banner">
+        <span id="datasetDesc">Carregando informações do dataset...</span>
+        <span id="stepProgress" style="font-family: monospace; font-weight: 700; color: #d8b4fe;">Passo: Corte k=2</span>
+    </div>
+
+    <!-- 4-QUADRANT COMPARISON GRID -->
+    <div class="quadrant-grid">
+        
+        <!-- 1. DIANA (SPLINTER GROUP) -->
+        <div class="method-card" id="card-diana">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--diana-color);">
+                    <span class="method-dot" style="background: var(--diana-color);"></span>
+                    1. DIANA (Splinter Group / Kaufman & Rousseeuw)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">Diâmetro: <strong id="diam-diana">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-diana">—</strong></span>
+                    <span class="metric-pill">CPCC: <strong id="cpcc-diana">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-diana"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma Top-Down</span>
+                    <svg id="svg-diana" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Heurística: Isola o elemento de maior dissimilaridade média (semente dissidente) e atrai iterativamente pontos com $d(i, A) - d(i, B) > 0$.
+            </div>
+        </div>
+
+        <!-- 2. BISECTING K-MEANS -->
+        <div class="method-card" id="card-bisecting">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--bisecting-color);">
+                    <span class="method-dot" style="background: var(--bisecting-color);"></span>
+                    2. Bisecting K-Means (Mínima Variância SSE)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">SSE Total: <strong id="diam-bisecting">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-bisecting">—</strong></span>
+                    <span class="metric-pill">CPCC: <strong id="cpcc-bisecting">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-bisecting"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma Top-Down</span>
+                    <svg id="svg-bisecting" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Heurística: Aplica K-Means ($k=2$) recursivamente sobre o cluster com maior dispersão/SSE. Divisões convexas rápidas e escaláveis $O(N \log k)$.
+            </div>
+        </div>
+
+        <!-- 3. FURTHEST-PAIR (2-MEDOIDS) -->
+        <div class="method-card" id="card-furthest">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--furthest-color);">
+                    <span class="method-dot" style="background: var(--furthest-color);"></span>
+                    3. Furthest-Pair (2-Medoids / Diâmetro Máximo)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">Diâmetro: <strong id="diam-furthest">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-furthest">—</strong></span>
+                    <span class="metric-pill">CPCC: <strong id="cpcc-furthest">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-furthest"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma Top-Down</span>
+                    <svg id="svg-furthest" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Heurística: Identifica o par de pontos com maior separação ($D_{\max} = \text{diâmetro}$) e particiona os demais pelo vizinho mais próximo das 2 sementes.
+            </div>
+        </div>
+
+        <!-- 4. PCA HYPERPLANE SPLIT (PDDP) -->
+        <div class="method-card" id="card-pca">
+            <div class="card-header">
+                <div class="method-title" style="color: var(--pca-color);">
+                    <span class="method-dot" style="background: var(--pca-color);"></span>
+                    4. PCA Hyperplane Split (PDDP / Direção Principal)
+                </div>
+                <div class="card-metrics">
+                    <span class="metric-pill">Dispersão PC1: <strong id="diam-pca">—</strong></span>
+                    <span class="metric-pill">Silhueta: <strong id="sil-pca">—</strong></span>
+                    <span class="metric-pill">CPCC: <strong id="cpcc-pca">—</strong></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="view-box">
+                    <span class="view-label">Espaço 2D</span>
+                    <canvas id="canvas-pca"></canvas>
+                </div>
+                <div class="view-box">
+                    <span class="view-label">Dendrograma Top-Down</span>
+                    <svg id="svg-pca" class="dendro-svg"></svg>
+                </div>
+            </div>
+            <div class="card-footer">
+                Heurística: Projeta os pontos no autovetor principal de covariância ($\text{PC}_1$) e realiza corte linear ortogonal pelo centróide (hiperplano divisor).
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER LOG -->
+    <div class="footer-log">
+        <span class="footer-dot"></span>
+        <span id="logText">Pronto. Explore o avanço das divisões top-down e observe como os 4 algoritmos dividem o macro-cluster raiz.</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // PALETAS DE CORES
+        // ==========================================
+        const CLUSTER_COLORS = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6',
+            '#06b6d4', '#f97316', '#14b8a6', '#e11d48', '#84cc16'
+        ];
+
+        // ==========================================
+        // DATASETS FIXOS (DETERMINÍSTICOS)
+        // ==========================================
+        const FIXED_DATASETS = {
+            chaining: {
+                title: "O Teste da Ponte (Efeito Chaining)",
+                desc: "Dois blocos esféricos conectados por 3 pontos tênues de ruído. Observe que a estratégia Top-Down começa pela visão global e divide os 2 blocos sem se perder na ponte no passo 1 (k=2)!",
+                points: [
+                    // Bloco Esquerdo (8 pts)
+                    {id: 0, x: 50, y: 110}, {id: 1, x: 65, y: 85}, {id: 2, x: 75, y: 130},
+                    {id: 3, x: 85, y: 105}, {id: 4, x: 60, y: 145}, {id: 5, x: 95, y: 80},
+                    {id: 6, x: 100, y: 125}, {id: 7, x: 110, y: 100},
+                    // Ponte de Ruído (3 pts)
+                    {id: 8, x: 145, y: 112}, {id: 9, x: 180, y: 115}, {id: 10, x: 215, y: 113},
+                    // Bloco Direito (8 pts)
+                    {id: 11, x: 250, y: 110}, {id: 12, x: 265, y: 85}, {id: 13, x: 275, y: 130},
+                    {id: 14, x: 285, y: 105}, {id: 15, x: 260, y: 145}, {id: 16, x: 295, y: 80},
+                    {id: 17, x: 300, y: 125}, {id: 18, x: 310, y: 100},
+                    // Outlier periférico isolado
+                    {id: 19, x: 180, y: 30}
+                ]
+            },
+            didactic5: {
+                title: "Exemplo Numérico Manual (5 Pontos A-E do Guia)",
+                desc: "As 5 observações exatas do roteiro: A(2), B(3), C(8), D(13), E(14). Permite acompanhar a divisão inicial entre {A, B} e {C, D, E} e as subsequentes partições.",
+                points: [
+                    {id: 0, label: 'A', x: 50, y: 115},
+                    {id: 1, label: 'B', x: 85, y: 115},
+                    {id: 2, label: 'C', x: 180, y: 115},
+                    {id: 3, label: 'D', x: 275, y: 115},
+                    {id: 4, label: 'E', x: 310, y: 115}
+                ]
+            },
+            three_blobs: {
+                title: "Três Grupos Macroscópicos Bem Separados",
+                desc: "Cenário ideal para Top-Down: Passo 1 (k=2) isola o primeiro grupo; Passo 2 (k=3) separa com perfeição os outros dois macro-clusters, sem calcular todas as folhas!",
+                points: [
+                    // Grupo 1 (Superior Esquerdo)
+                    {id: 0, x: 60, y: 70}, {id: 1, x: 80, y: 55}, {id: 2, x: 95, y: 85},
+                    {id: 3, x: 65, y: 100}, {id: 4, x: 85, y: 95}, {id: 5, x: 105, y: 80},
+                    // Grupo 2 (Superior Direito)
+                    {id: 6, x: 250, y: 70}, {id: 7, x: 270, y: 55}, {id: 8, x: 285, y: 85},
+                    {id: 9, x: 255, y: 100}, {id: 10, x: 275, y: 95}, {id: 11, x: 295, y: 80},
+                    // Grupo 3 (Inferior Centro)
+                    {id: 12, x: 160, y: 170}, {id: 13, x: 180, y: 155}, {id: 14, x: 195, y: 185},
+                    {id: 15, x: 165, y: 200}, {id: 16, x: 185, y: 195}, {id: 17, x: 205, y: 180}
+                ]
+            },
+            outlier: {
+                title: "Dois Grupos Densos + Outlier Distante",
+                desc: "Dois grupos circulares coesos e um outlier extremo. Observe como o outlier de alta distância afeta a primeira bipartição em cada método divisivo.",
+                points: [
+                    // Grupo A
+                    {id: 0, x: 70, y: 80}, {id: 1, x: 90, y: 65}, {id: 2, x: 105, y: 95},
+                    {id: 3, x: 75, y: 110}, {id: 4, x: 115, y: 75}, {id: 5, x: 95, y: 120},
+                    // Grupo B
+                    {id: 6, x: 240, y: 80}, {id: 7, x: 260, y: 65}, {id: 8, x: 275, y: 95},
+                    {id: 9, x: 245, y: 110}, {id: 10, x: 285, y: 75}, {id: 11, x: 265, y: 120},
+                    // Outlier extremo
+                    {id: 12, x: 175, y: 215}
+                ]
+            },
+            rings: {
+                title: "Meias-Luas / Curvas (Formato Não-Esférico)",
+                desc: "Estruturas não-convexas curvas. Mostra a limitação de divisões lineares top-down (hiperplanos do Bisecting e PCA cortam no meio das luas).",
+                points: [
+                    // Arco Superior
+                    {id: 0, x: 60, y: 80}, {id: 1, x: 80, y: 65}, {id: 2, x: 110, y: 55},
+                    {id: 3, x: 140, y: 55}, {id: 4, x: 170, y: 65}, {id: 5, x: 190, y: 80},
+                    {id: 6, x: 210, y: 100},
+                    // Arco Inferior
+                    {id: 7, x: 110, y: 120}, {id: 8, x: 130, y: 140}, {id: 9, x: 160, y: 150},
+                    {id: 10, x: 190, y: 150}, {id: 11, x: 220, y: 140}, {id: 12, x: 240, y: 120},
+                    {id: 13, x: 260, y: 100}
+                ]
+            },
+            unbalanced: {
+                title: "Grupos com Densidades e Tamanhos Desiguais",
+                desc: "Um cluster grande e denso (12 pontos) e um cluster menor disperso (4 pontos). O critério de diâmetro vs variância decide qual grupo será subdividido primeiro.",
+                points: [
+                    // Cluster Grande Denso
+                    {id: 0, x: 70, y: 90}, {id: 1, x: 80, y: 75}, {id: 2, x: 95, y: 85},
+                    {id: 3, x: 65, y: 110}, {id: 4, x: 85, y: 105}, {id: 5, x: 105, y: 95},
+                    {id: 6, x: 75, y: 130}, {id: 7, x: 95, y: 125}, {id: 8, x: 110, y: 115},
+                    {id: 9, x: 85, y: 145}, {id: 10, x: 105, y: 140}, {id: 11, x: 120, y: 130},
+                    // Cluster Pequeno Disperso
+                    {id: 12, x: 240, y: 60}, {id: 13, x: 290, y: 80},
+                    {id: 14, x: 250, y: 140}, {id: 15, x: 300, y: 160}
+                ]
+            }
+        };
+
+        // ==========================================
+        // ESTADO GLOBAL
+        // ==========================================
+        let currentPoints = [];
+        let selectedK = 2;
+        let globalStepIndex = -1; // -1 = corte direto no k selecionado
+        let currentViewMode = 'all'; // 'all', 'diana', 'bisecting', 'furthest', 'pca'
+        const methods = ['diana', 'bisecting', 'furthest', 'pca'];
+        let trees = {};
+        let histories = {};
+
+        // ==========================================
+        // CÁLCULOS GEOMÉTRICOS BÁSICOS
+        // ==========================================
+        function dist2D(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function clusterDiameter(members) {
+            if (members.length <= 1) return 0;
+            let maxD = 0;
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    const d = dist2D(currentPoints[members[i]], currentPoints[members[j]]);
+                    if (d > maxD) maxD = d;
+                }
+            }
+            return maxD;
+        }
+
+        function clusterCentroid(members) {
+            if (members.length === 0) return { x: 0, y: 0 };
+            let sumX = 0, sumY = 0;
+            for (let idx of members) {
+                sumX += currentPoints[idx].x;
+                sumY += currentPoints[idx].y;
+            }
+            return { x: sumX / members.length, y: sumY / members.length };
+        }
+
+        function clusterSSE(members) {
+            if (members.length <= 1) return 0;
+            const cen = clusterCentroid(members);
+            let sse = 0;
+            for (let idx of members) {
+                const dx = currentPoints[idx].x - cen.x;
+                const dy = currentPoints[idx].y - cen.y;
+                sse += dx * dx + dy * dy;
+            }
+            return sse;
+        }
+
+        // ==========================================
+        // ALGORITMOS DE BIPARTIÇÃO TOP-DOWN
+        // ==========================================
+
+        // 1. DIANA (Splinter Group / Kaufman & Rousseeuw 1990)
+        function splitDIANA(members) {
+            if (members.length <= 1) return { groupA: members, groupB: [], details: {} };
+            const n = members.length;
+            
+            // 1. Identifica a semente dissidente (maior distância média para os demais)
+            let maxAvg = -1, seed = members[0];
+            for (let i of members) {
+                let sumD = 0;
+                for (let j of members) {
+                    if (i !== j) sumD += dist2D(currentPoints[i], currentPoints[j]);
+                }
+                const avg = sumD / (n - 1);
+                if (avg > maxAvg) {
+                    maxAvg = avg;
+                    seed = i;
+                }
+            }
+
+            const splinter = [seed];
+            let rem = members.filter(idx => idx !== seed);
+            const migratedHistory = [seed];
+
+            // 2. Migração iterativa de pontos para o grupo dissidente
+            while (rem.length > 0) {
+                let bestDiff = -Infinity;
+                let bestCand = null;
+
+                for (let cand of rem) {
+                    let dRem = 0;
+                    if (rem.length > 1) {
+                        let sRem = 0;
+                        for (let r of rem) {
+                            if (r !== cand) sRem += dist2D(currentPoints[cand], currentPoints[r]);
+                        }
+                        dRem = sRem / (rem.length - 1);
+                    }
+                    let sSpl = 0;
+                    for (let s of splinter) {
+                        sSpl += dist2D(currentPoints[cand], currentPoints[s]);
+                    }
+                    const dSpl = sSpl / splinter.length;
+                    const diff = dRem - dSpl;
+
+                    if (diff > bestDiff) {
+                        bestDiff = diff;
+                        bestCand = cand;
+                    }
+                }
+
+                if (bestDiff > 0 && bestCand !== null) {
+                    rem = rem.filter(idx => idx !== bestCand);
+                    splinter.push(bestCand);
+                    migratedHistory.push(bestCand);
+                } else {
+                    break;
+                }
+            }
+
+            return {
+                groupA: rem,
+                groupB: splinter,
+                details: {
+                    seed: seed,
+                    splinter: splinter,
+                    migrated: migratedHistory,
+                    diameter: clusterDiameter(members),
+                    name: 'DIANA (Splinter Group)'
+                }
+            };
+        }
+
+        // 2. Bisecting K-Means (Mínima Variância SSE)
+        function splitBisectingKMeans(members) {
+            if (members.length <= 1) return { groupA: members, groupB: [], details: {} };
+            
+            // Sementes iniciais com o par mais distante para garantir determinismo e máxima qualidade
+            let maxD = -1, u = members[0], v = members[members.length - 1];
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    const d = dist2D(currentPoints[members[i]], currentPoints[members[j]]);
+                    if (d > maxD) {
+                        maxD = d;
+                        u = members[i];
+                        v = members[j];
+                    }
+                }
+            }
+
+            let c1 = { x: currentPoints[u].x, y: currentPoints[u].y };
+            let c2 = { x: currentPoints[v].x, y: currentPoints[v].y };
+            let gA = [], gB = [];
+
+            for (let iter = 0; iter < 15; iter++) {
+                gA = []; gB = [];
+                for (let m of members) {
+                    const p = currentPoints[m];
+                    const d1 = dist2D(p, c1);
+                    const d2 = dist2D(p, c2);
+                    if (d1 <= d2) gA.push(m);
+                    else gB.push(m);
+                }
+                if (gA.length === 0 || gB.length === 0) break;
+                const newC1 = clusterCentroid(gA);
+                const newC2 = clusterCentroid(gB);
+                if (Math.abs(newC1.x - c1.x) < 1e-4 && Math.abs(newC1.y - c1.y) < 1e-4 &&
+                    Math.abs(newC2.x - c2.x) < 1e-4 && Math.abs(newC2.y - c2.y) < 1e-4) {
+                    break;
+                }
+                c1 = newC1;
+                c2 = newC2;
+            }
+
+            if (gA.length === 0) gA.push(gB.pop());
+            if (gB.length === 0) gB.push(gA.pop());
+
+            return {
+                groupA: gA,
+                groupB: gB,
+                details: {
+                    c1: c1,
+                    c2: c2,
+                    sse: clusterSSE(members),
+                    diameter: clusterDiameter(members),
+                    name: 'Bisecting K-Means'
+                }
+            };
+        }
+
+        // 3. Furthest-Pair (2-Medoids / Diâmetro Máximo)
+        function splitFurthestPair(members) {
+            if (members.length <= 1) return { groupA: members, groupB: [], details: {} };
+            
+            let maxD = -1, bestU = members[0], bestV = members[members.length - 1];
+            for (let i = 0; i < members.length; i++) {
+                for (let j = i + 1; j < members.length; j++) {
+                    const d = dist2D(currentPoints[members[i]], currentPoints[members[j]]);
+                    if (d > maxD) {
+                        maxD = d;
+                        bestU = members[i];
+                        bestV = members[j];
+                    }
+                }
+            }
+
+            let gA = [], gB = [];
+            const pU = currentPoints[bestU];
+            const pV = currentPoints[bestV];
+
+            for (let m of members) {
+                const p = currentPoints[m];
+                if (dist2D(p, pU) <= dist2D(p, pV)) gA.push(m);
+                else gB.push(m);
+            }
+
+            if (gA.length === 0) gA.push(gB.pop());
+            if (gB.length === 0) gB.push(gA.pop());
+
+            return {
+                groupA: gA,
+                groupB: gB,
+                details: {
+                    seedA: bestU,
+                    seedB: bestV,
+                    diameter: maxD,
+                    name: 'Furthest-Pair'
+                }
+            };
+        }
+
+        // 4. PCA Hyperplane Split (PDDP / Direção Principal)
+        function splitPCA(members) {
+            if (members.length <= 1) return { groupA: members, groupB: [], details: {} };
+            
+            const cen = clusterCentroid(members);
+            let varXX = 0, varYY = 0, covXY = 0;
+            for (let m of members) {
+                const dx = currentPoints[m].x - cen.x;
+                const dy = currentPoints[m].y - cen.y;
+                varXX += dx * dx;
+                varYY += dy * dy;
+                covXY += dx * dy;
+            }
+            varXX /= members.length;
+            varYY /= members.length;
+            covXY /= members.length;
+
+            // Maior autovalor de matriz simétrica 2x2
+            const trace = varXX + varYY;
+            const diff = varXX - varYY;
+            const disc = Math.sqrt(diff * diff + 4 * covXY * covXY);
+            const lambda1 = (trace + disc) / 2;
+
+            let pcX = 1, pcY = 0;
+            if (Math.abs(covXY) > 1e-9) {
+                pcX = covXY;
+                pcY = lambda1 - varXX;
+                const len = Math.sqrt(pcX * pcX + pcY * pcY);
+                if (len > 1e-9) {
+                    pcX /= len;
+                    pcY /= len;
+                }
+            } else {
+                if (varXX >= varYY) { pcX = 1; pcY = 0; }
+                else { pcX = 0; pcY = 1; }
+            }
+
+            // Projeta os pontos no autovetor principal
+            const projs = members.map(m => {
+                const dx = currentPoints[m].x - cen.x;
+                const dy = currentPoints[m].y - cen.y;
+                return { id: m, val: dx * pcX + dy * pcY };
+            });
+
+            let gA = projs.filter(p => p.val <= 0).map(p => p.id);
+            let gB = projs.filter(p => p.val > 0).map(p => p.id);
+
+            // Fallback caso todos estejam no mesmo lado
+            if (gA.length === 0 || gB.length === 0) {
+                projs.sort((a, b) => a.val - b.val);
+                const mid = Math.floor(projs.length / 2);
+                gA = projs.slice(0, mid).map(p => p.id);
+                gB = projs.slice(mid).map(p => p.id);
+            }
+
+            return {
+                groupA: gA,
+                groupB: gB,
+                details: {
+                    centroid: cen,
+                    pcX: pcX,
+                    pcY: pcY,
+                    lambda1: lambda1,
+                    diameter: clusterDiameter(members),
+                    name: 'PCA Hyperplane Split'
+                }
+            };
+        }
+
+        // ==========================================
+        // CONSTRUÇÃO COMPLETA DA ÁRVORE DIVISIVA
+        // ==========================================
+        function buildDivisiveTreeForMethod(method) {
+            const N = currentPoints.length;
+            if (N < 2) return { root: null, history: [] };
+
+            let nextNodeId = 0;
+            const allIndices = currentPoints.map((_, i) => i);
+            const root = {
+                id: nextNodeId++,
+                name: 'C_raiz',
+                members: [...allIndices],
+                isLeaf: N === 1,
+                height: clusterDiameter(allIndices),
+                left: null,
+                right: null,
+                centroid: clusterCentroid(allIndices)
+            };
+
+            let activeNodes = [root];
+            const history = [{
+                step: 0,
+                k: 1,
+                clusters: activeNodes.map(c => [...c.members]),
+                splitNode: null,
+                childA: null,
+                childB: null,
+                splitDetails: null
+            }];
+
+            for (let step = 0; step < N - 1; step++) {
+                // Seleciona o cluster ativo com maior diâmetro para ser dividido
+                const splittable = activeNodes.filter(n => n.members.length > 1);
+                if (splittable.length === 0) break;
+
+                splittable.sort((a, b) => b.height - a.height);
+                const chosen = splittable[0];
+
+                let res;
+                if (method === 'diana') res = splitDIANA(chosen.members);
+                else if (method === 'bisecting') res = splitBisectingKMeans(chosen.members);
+                else if (method === 'furthest') res = splitFurthestPair(chosen.members);
+                else if (method === 'pca') res = splitPCA(chosen.members);
+
+                const gA = res.groupA;
+                const gB = res.groupB;
+
+                const leftNode = {
+                    id: nextNodeId++,
+                    name: gA.length === 1 ? (currentPoints[gA[0]].label || `P${gA[0]}`) : `C${nextNodeId}`,
+                    members: gA,
+                    isLeaf: gA.length === 1,
+                    height: gA.length === 1 ? 0 : clusterDiameter(gA),
+                    left: null,
+                    right: null,
+                    centroid: clusterCentroid(gA)
+                };
+
+                const rightNode = {
+                    id: nextNodeId++,
+                    name: gB.length === 1 ? (currentPoints[gB[0]].label || `P${gB[0]}`) : `C${nextNodeId}`,
+                    members: gB,
+                    isLeaf: gB.length === 1,
+                    height: gB.length === 1 ? 0 : clusterDiameter(gB),
+                    left: null,
+                    right: null,
+                    centroid: clusterCentroid(gB)
+                };
+
+                chosen.left = leftNode;
+                chosen.right = rightNode;
+                chosen.isLeaf = false;
+
+                const chosenIdx = activeNodes.indexOf(chosen);
+                activeNodes.splice(chosenIdx, 1, leftNode, rightNode);
+
+                history.push({
+                    step: step + 1,
+                    k: activeNodes.length,
+                    clusters: activeNodes.map(c => [...c.members]),
+                    splitNode: chosen,
+                    childA: leftNode,
+                    childB: rightNode,
+                    splitDetails: res.details,
+                    method: method
+                });
+            }
+
+            return { root, history };
+        }
+
+        // ==========================================
+        // ATRIBUIÇÃO DE CLUSTERS PARA CORTE K OU PASSO
+        // ==========================================
+        function getClusterAssignment(method, kTarget, step) {
+            const N = currentPoints.length;
+            const labels = new Array(N).fill(0);
+            const hist = histories[method];
+            if (!hist || hist.length === 0) return labels;
+
+            let targetState = null;
+            if (step >= 0 && step < hist.length) {
+                targetState = hist[step];
+            } else {
+                // Corte direto para kTarget: o passo (kTarget - 1) possui exatamente kTarget clusters!
+                const stepIdx = Math.min(Math.max(kTarget - 1, 0), hist.length - 1);
+                targetState = hist[stepIdx];
+            }
+
+            if (targetState && targetState.clusters) {
+                targetState.clusters.forEach((members, cIdx) => {
+                    members.forEach(pIdx => {
+                        labels[pIdx] = cIdx;
+                    });
+                });
+            }
+
+            return labels;
+        }
+
+        // ==========================================
+        // CÁLCULO DE CPCC, SILHUETA E DIÂMETRO / SSE
+        // ==========================================
+        function computeMethodMetrics(method, labels) {
+            const N = currentPoints.length;
+            const root = trees[method];
+            if (N < 3 || !root) return { cpcc: 0, sil: 0, diam: 0 };
+
+            // CPCC (Correlação Cofenética)
+            let sumD = 0, sumC = 0, count = 0;
+            const origDists = [];
+            const cophDists = [];
+
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    const d = dist2D(currentPoints[i], currentPoints[j]);
+                    const c = getLCAHeight(root, i, j);
+                    origDists.push(d);
+                    cophDists.push(c);
+                    sumD += d;
+                    sumC += c;
+                    count++;
+                }
+            }
+
+            const meanD = sumD / count;
+            const meanC = sumC / count;
+            let num = 0, denD = 0, denC = 0;
+
+            for (let i = 0; i < count; i++) {
+                const diffD = origDists[i] - meanD;
+                const diffC = cophDists[i] - meanC;
+                num += diffD * diffC;
+                denD += diffD * diffD;
+                denC += diffC * diffC;
+            }
+            const cpcc = (denD > 0 && denC > 0) ? (num / Math.sqrt(denD * denC)) : 0;
+
+            // Silhueta
+            const uniqueLabels = Array.from(new Set(labels));
+            const k = uniqueLabels.length;
+            let totalSil = 0, valid = 0;
+
+            if (k > 1 && k < N) {
+                const clustersMap = {};
+                labels.forEach((cId, pIdx) => {
+                    if (!clustersMap[cId]) clustersMap[cId] = [];
+                    clustersMap[cId].push(pIdx);
+                });
+
+                for (let i = 0; i < N; i++) {
+                    const ownMembers = clustersMap[labels[i]];
+                    let a_i = 0;
+                    if (ownMembers && ownMembers.length > 1) {
+                        let sum = 0;
+                        for (let oId of ownMembers) {
+                            if (oId !== i) sum += dist2D(currentPoints[i], currentPoints[oId]);
+                        }
+                        a_i = sum / (ownMembers.length - 1);
+                    }
+
+                    let minOther = Infinity;
+                    for (let cId in clustersMap) {
+                        if (parseInt(cId) === labels[i]) continue;
+                        const otherMembers = clustersMap[cId];
+                        let sum = 0;
+                        for (let oId of otherMembers) {
+                            sum += dist2D(currentPoints[i], currentPoints[oId]);
+                        }
+                        const avg = sum / otherMembers.length;
+                        if (avg < minOther) minOther = avg;
+                    }
+
+                    const b_i = minOther;
+                    const max_ab = Math.max(a_i, b_i);
+                    const s_i = max_ab > 0 ? (b_i - a_i) / max_ab : 0;
+                    totalSil += s_i;
+                    valid++;
+                }
+            }
+
+            const sil = valid > 0 ? totalSil / valid : 0;
+            const diam = root ? root.height : 0;
+            return { cpcc, sil, diam };
+        }
+
+        function getLCAHeight(node, idA, idB) {
+            if (!node || node.isLeaf) return 0;
+            const inL_A = node.left && node.left.members.includes(idA);
+            const inL_B = node.left && node.left.members.includes(idB);
+
+            if (inL_A && inL_B) return getLCAHeight(node.left, idA, idB);
+            const inR_A = node.right && node.right.members.includes(idA);
+            const inR_B = node.right && node.right.members.includes(idB);
+            if (inR_A && inR_B) return getLCAHeight(node.right, idA, idB);
+
+            return node.height;
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO SCATTER 2D (CANVAS)
+        // ==========================================
+        function renderScatter(method, labels) {
+            const canvas = document.getElementById(`canvas-${method}`);
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grade suave
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 30) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 30) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+
+            // Normaliza coordenadas dos pontos
+            const minX = Math.min(...currentPoints.map(p => p.x));
+            const maxX = Math.max(...currentPoints.map(p => p.x));
+            const minY = Math.min(...currentPoints.map(p => p.y));
+            const maxY = Math.max(...currentPoints.map(p => p.y));
+
+            const isSingle = currentViewMode !== 'all';
+            const pad = isSingle ? 36 : 24;
+            const scaleX = (w - 2 * pad) / (maxX - minX || 1);
+            const scaleY = (h - 2 * pad) / (maxY - minY || 1);
+            const scale = Math.min(scaleX, scaleY);
+
+            const offsetX = (w - (maxX - minX) * scale) / 2;
+            const offsetY = (h - (maxY - minY) * scale) / 2;
+
+            function toScreen(p) {
+                return {
+                    x: offsetX + (p.x - minX) * scale,
+                    y: offsetY + (p.y - minY) * scale
+                };
+            }
+
+            // Visualização da Bipartição da iteração ativa (quando em passo a passo)
+            const activeStep = (globalStepIndex >= 0) ? globalStepIndex : (selectedK - 1);
+            const hist = histories[method] && histories[method][activeStep];
+
+            if (hist && hist.splitDetails) {
+                const det = hist.splitDetails;
+
+                // 1. DIANA: Semente Dissidente e Linhas de Migração
+                if (method === 'diana' && det.seed !== undefined) {
+                    const sSeed = toScreen(currentPoints[det.seed]);
+                    
+                    // Halo de pulso na semente dissidente
+                    ctx.beginPath();
+                    ctx.arc(sSeed.x, sSeed.y, isSingle ? 20 : 15, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = isSingle ? 2.5 : 1.8;
+                    ctx.stroke();
+
+                    // Linhas de migração dos membros dissidentes
+                    if (det.splinter && det.splinter.length > 1) {
+                        ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+                        ctx.lineWidth = isSingle ? 1.8 : 1.2;
+                        ctx.setLineDash([3, 3]);
+                        det.splinter.forEach(sIdx => {
+                            if (sIdx !== det.seed) {
+                                const sp = toScreen(currentPoints[sIdx]);
+                                ctx.beginPath();
+                                ctx.moveTo(sSeed.x, sSeed.y);
+                                ctx.lineTo(sp.x, sp.y);
+                                ctx.stroke();
+                            }
+                        });
+                        ctx.setLineDash([]);
+                    }
+
+                    drawScatterBadge(ctx, sSeed.x, sSeed.y - (isSingle ? 24 : 18), 'Semente Dissidente', '#f59e0b', isSingle);
+                }
+
+                // 2. Bisecting K-Means: Centróides e Linha Divisora Perpendicular
+                else if (method === 'bisecting' && det.c1 && det.c2) {
+                    const s1 = toScreen(det.c1);
+                    const s2 = toScreen(det.c2);
+
+                    // Conexão entre centróides
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+                    ctx.lineWidth = isSingle ? 2 : 1.4;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Linha bissetriz ortogonal (fronteira de Voronoi)
+                    const midX = (s1.x + s2.x) / 2;
+                    const midY = (s1.y + s2.y) / 2;
+                    const dx = s2.x - s1.x;
+                    const dy = s2.y - s1.y;
+                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const normX = -dy / len;
+                    const normY = dx / len;
+                    const lineLen = isSingle ? 160 : 110;
+
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = isSingle ? 2.5 : 1.8;
+                    ctx.beginPath();
+                    ctx.moveTo(midX - normX * lineLen, midY - normY * lineLen);
+                    ctx.lineTo(midX + normX * lineLen, midY + normY * lineLen);
+                    ctx.stroke();
+
+                    drawMiniCentroid(ctx, s1, 'μ₁', '#10b981', isSingle);
+                    drawMiniCentroid(ctx, s2, 'μ₂', '#10b981', isSingle);
+                    drawScatterBadge(ctx, midX, midY, 'Corte Voronoi', '#10b981', isSingle);
+                }
+
+                // 3. Furthest-Pair: Linha entre os dois pontos extremos (Diâmetro)
+                else if (method === 'furthest' && det.seedA !== undefined && det.seedB !== undefined) {
+                    const sA = toScreen(currentPoints[det.seedA]);
+                    const sB = toScreen(currentPoints[det.seedB]);
+
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = isSingle ? 3 : 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath(); ctx.moveTo(sA.x, sA.y); ctx.lineTo(sB.x, sB.y); ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    [sA, sB].forEach(sp => {
+                        ctx.beginPath();
+                        ctx.arc(sp.x, sp.y, isSingle ? 16 : 12, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.lineWidth = isSingle ? 2.2 : 1.6;
+                        ctx.stroke();
+                    });
+
+                    drawScatterBadge(ctx, (sA.x + sB.x) / 2, (sA.y + sB.y) / 2, `D_max=${det.diameter.toFixed(1)}`, '#38bdf8', isSingle);
+                }
+
+                // 4. PCA Split: Vetor do Primeiro Componente Principal & Hiperplano Divisor
+                else if (method === 'pca' && det.centroid && det.pcX !== undefined) {
+                    const cen = toScreen(det.centroid);
+                    const lenVec = isSingle ? 90 : 60;
+                    const lenCut = isSingle ? 150 : 100;
+
+                    // Eixo PC1 (Direção de Maior Dispersão)
+                    ctx.strokeStyle = '#c084fc';
+                    ctx.lineWidth = isSingle ? 2.5 : 1.8;
+                    ctx.beginPath();
+                    ctx.moveTo(cen.x - det.pcX * lenVec, cen.y - det.pcY * lenVec);
+                    ctx.lineTo(cen.x + det.pcX * lenVec, cen.y + det.pcY * lenVec);
+                    ctx.stroke();
+
+                    // Hiperplano Divisor Ortogonal a PC1
+                    const orthX = -det.pcY;
+                    const orthY = det.pcX;
+                    ctx.strokeStyle = '#a855f7';
+                    ctx.lineWidth = isSingle ? 2.8 : 2;
+                    ctx.setLineDash([5, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(cen.x - orthX * lenCut, cen.y - orthY * lenCut);
+                    ctx.lineTo(cen.x + orthX * lenCut, cen.y + orthY * lenCut);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    drawMiniCentroid(ctx, cen, 'μ_PC', '#a855f7', isSingle);
+                    drawScatterBadge(ctx, cen.x + det.pcX * lenVec * 0.7, cen.y + det.pcY * lenVec * 0.7, 'Eixo PC1', '#c084fc', isSingle);
+                }
+            }
+
+            // Desenha os pontos coloridos
+            currentPoints.forEach((p, idx) => {
+                const sp = toScreen(p);
+                const cId = labels[idx];
+                const color = CLUSTER_COLORS[cId % CLUSTER_COLORS.length];
+
+                let isSpecial = false;
+                let specialColor = '#ffffff';
+
+                if (hist && hist.splitDetails) {
+                    const det = hist.splitDetails;
+                    if (method === 'diana' && det.seed === idx) {
+                        isSpecial = true;
+                        specialColor = '#f59e0b';
+                    } else if (method === 'furthest' && (det.seedA === idx || det.seedB === idx)) {
+                        isSpecial = true;
+                        specialColor = '#38bdf8';
+                    }
+                }
+
+                const haloR = isSpecial ? (isSingle ? 16 : 12) : (isSingle ? 11 : 8);
+                const coreR = isSpecial ? (isSingle ? 8 : 6) : (isSingle ? 6 : 4.5);
+
+                // Halo
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, haloR, 0, Math.PI * 2);
+                ctx.fillStyle = isSpecial ? specialColor : color;
+                ctx.globalAlpha = isSpecial ? 0.5 : 0.25;
+                ctx.fill();
+
+                // Núcleo
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, coreR, 0, Math.PI * 2);
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = isSpecial ? specialColor : color;
+                ctx.fill();
+                ctx.lineWidth = isSpecial ? (isSingle ? 2.5 : 2) : (isSingle ? 1.6 : 1.2);
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Rótulo
+                ctx.fillStyle = isSpecial ? '#ffffff' : '#cbd5e1';
+                ctx.font = isSpecial ? (isSingle ? 'bold 12px monospace' : 'bold 10px monospace') : (isSingle ? '11px monospace' : '9px monospace');
+                const lbl = p.label ? p.label : p.id;
+                ctx.fillText(lbl, sp.x + (isSingle ? 8 : 6), sp.y - (isSingle ? 8 : 6));
+            });
+        }
+
+        // ==========================================
+        // AUXILIARES VISUAIS DE RENDERIZAÇÃO
+        // ==========================================
+        function drawMiniCentroid(ctx, pt, label, color = '#10b981', isSingle = false) {
+            ctx.save();
+            const r = isSingle ? 8 : 6;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 2.2 : 1.8;
+            ctx.stroke();
+
+            ctx.beginPath();
+            const arm = isSingle ? 5 : 3.5;
+            ctx.moveTo(pt.x - arm, pt.y);
+            ctx.lineTo(pt.x + arm, pt.y);
+            ctx.moveTo(pt.x, pt.y - arm);
+            ctx.lineTo(pt.x, pt.y + arm);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 1.6 : 1.2;
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.font = isSingle ? 'bold 11px sans-serif' : 'bold 9px sans-serif';
+            ctx.fillText(label, pt.x + (isSingle ? 9 : 7), pt.y - (isSingle ? 6 : 4));
+            ctx.restore();
+        }
+
+        function drawScatterBadge(ctx, x, y, text, color = '#10b981', isSingle = false) {
+            ctx.save();
+            ctx.font = isSingle ? 'bold 11px monospace' : 'bold 9px monospace';
+            const m = ctx.measureText(text);
+            const padX = isSingle ? 9 : 5;
+            const w = m.width + padX * 2;
+            const h = isSingle ? 19 : 15;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+            ctx.fillRect(x - w / 2, y - h / 2, w, h);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isSingle ? 1.5 : 1.2;
+            ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, x, y);
+            ctx.restore();
+        }
+
+        // ==========================================
+        // RENDERIZAÇÃO DO DENDROGRAMA TOP-DOWN (SVG)
+        // ==========================================
+        function renderDendrogram(method, labels) {
+            const svg = document.getElementById(`svg-${method}`);
+            svg.innerHTML = '';
+            const root = trees[method];
+            if (!root) return;
+
+            const rect = svg.getBoundingClientRect();
+            const width = rect.width || 200;
+            const height = rect.height || 330;
+            const isSingle = currentViewMode !== 'all';
+            const padX = isSingle ? 35 : 22;
+            const padTop = isSingle ? 28 : 22;
+            const padBottom = isSingle ? 36 : 28;
+
+            const maxH = Math.max(root.height, 1e-4);
+
+            const leaves = [];
+            function getLeaves(n) {
+                if (!n) return;
+                if (n.isLeaf) { leaves.push(n); return; }
+                getLeaves(n.left);
+                getLeaves(n.right);
+            }
+            getLeaves(root);
+
+            const leafStep = (width - 2 * padX) / (leaves.length - 1 || 1);
+            leaves.forEach((l, i) => l.xPos = padX + i * leafStep);
+
+            function yPos(hVal) {
+                const avail = height - padTop - padBottom;
+                return height - padBottom - (hVal / maxH) * avail;
+            }
+
+            function drawNode(n) {
+                if (!n) return 0;
+                if (n.isLeaf) {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', n.xPos);
+                    text.setAttribute('y', height - padBottom + (isSingle ? 18 : 14));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-size', isSingle ? '11px' : '9px');
+                    text.setAttribute('font-family', 'monospace');
+                    text.setAttribute('fill', '#94a3b8');
+                    text.textContent = n.name;
+                    svg.appendChild(text);
+                    return n.xPos;
+                }
+
+                const xL = drawNode(n.left);
+                const xR = drawNode(n.right);
+                n.xPos = (xL + xR) / 2;
+
+                const yN = yPos(n.height);
+                const yL = yPos(n.left ? n.left.height : 0);
+                const yR = yPos(n.right ? n.right.height : 0);
+
+                const sampleIdx = n.members[0];
+                const cId = labels[sampleIdx];
+                const branchColor = CLUSTER_COLORS[cId % CLUSTER_COLORS.length] || '#64748b';
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${xL} ${yL} L ${xL} ${yN} L ${xR} ${yN} L ${xR} ${yR}`);
+                path.setAttribute('stroke', branchColor);
+                path.setAttribute('stroke-width', isSingle ? '2.4' : '1.8');
+                path.setAttribute('fill', 'none');
+                svg.appendChild(path);
+
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', n.xPos);
+                circ.setAttribute('cy', yN);
+                circ.setAttribute('r', isSingle ? '3.5' : '2.5');
+                circ.setAttribute('fill', branchColor);
+                svg.appendChild(circ);
+
+                return n.xPos;
+            }
+
+            drawNode(root);
+
+            // Altura máxima do cluster raiz (topo do dendrograma)
+            const topTag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            topTag.setAttribute('x', width - padX);
+            topTag.setAttribute('y', isSingle ? 18 : 14);
+            topTag.setAttribute('text-anchor', 'end');
+            topTag.setAttribute('font-size', isSingle ? '11px' : '9px');
+            topTag.setAttribute('font-weight', 'bold');
+            topTag.setAttribute('font-family', 'monospace');
+            topTag.setAttribute('fill', '#94a3b8');
+            topTag.textContent = `Raiz H: ${maxH.toFixed(1)}`;
+            svg.appendChild(topTag);
+        }
+
+        // ==========================================
+        // ATUALIZAÇÃO GERAL SINCRONIZADA
+        // ==========================================
+        function updateAllViews() {
+            methods.forEach(method => {
+                const isVisible = (currentViewMode === 'all' || currentViewMode === method);
+                const card = document.getElementById(`card-${method}`);
+                if (card) {
+                    card.style.display = isVisible ? 'flex' : 'none';
+                }
+
+                if (isVisible) {
+                    const labels = getClusterAssignment(method, selectedK, globalStepIndex);
+                    renderScatter(method, labels);
+                    renderDendrogram(method, labels);
+
+                    const metrics = computeMethodMetrics(method, labels);
+                    const diamEl = document.getElementById(`diam-${method}`);
+                    if (diamEl) {
+                        if (method === 'bisecting') {
+                            const activeStep = (globalStepIndex >= 0) ? globalStepIndex : (selectedK - 1);
+                            const h = histories[method][activeStep];
+                            const sseVal = (h && h.splitDetails && h.splitDetails.sse) ? h.splitDetails.sse : metrics.diam;
+                            diamEl.textContent = sseVal.toFixed(1);
+                        } else {
+                            diamEl.textContent = metrics.diam.toFixed(1);
+                        }
+                    }
+                    document.getElementById(`sil-${method}`).textContent = metrics.sil.toFixed(3);
+                    document.getElementById(`cpcc-${method}`).textContent = metrics.cpcc.toFixed(3);
+                }
+            });
+
+            // Atualiza banner de progresso
+            const totalSteps = currentPoints.length - 1;
+            const progressEl = document.getElementById('stepProgress');
+            if (globalStepIndex === -1) {
+                progressEl.textContent = `Visualização: Corte Contínuo em k = ${selectedK}`;
+            } else {
+                progressEl.textContent = `Divisão Sincronizada: Passo ${globalStepIndex} de ${totalSteps} (k = ${globalStepIndex + 1})`;
+            }
+        }
+
+        // ==========================================
+        // ALTERNÂNCIA DE MODO (TODOS VS 1 DE CADA VEZ)
+        // ==========================================
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const grid = document.querySelector('.quadrant-grid');
+            const select = document.getElementById('viewModeSelect');
+            if (select && select.value !== mode) {
+                select.value = mode;
+            }
+
+            document.querySelectorAll('#viewModeTabs .tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-view') === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (mode === 'all') {
+                grid.classList.remove('single-view');
+                methods.forEach(m => {
+                    const card = document.getElementById(`card-${m}`);
+                    if (card) card.style.display = 'flex';
+                });
+                setLog("Modo de exibição: Todos os 4 métodos divisivos em grade comparativa (2×2).");
+            } else {
+                grid.classList.add('single-view');
+                methods.forEach(m => {
+                    const card = document.getElementById(`card-${m}`);
+                    if (card) card.style.display = (m === mode) ? 'flex' : 'none';
+                });
+                const names = {
+                    diana: 'DIANA (Splinter Group / Kaufman & Rousseeuw)',
+                    bisecting: 'Bisecting K-Means (Mínima Variância)',
+                    furthest: 'Furthest-Pair (2-Medoids / Diâmetro Máximo)',
+                    pca: 'PCA Hyperplane Split (PDDP / Direção Principal)'
+                };
+                setLog(`Modo ampliado (Tela Cheia): Exibindo exclusivamente ${names[mode]}.`);
+            }
+
+            requestAnimationFrame(() => {
+                resizeAllCanvases();
+            });
+        }
+
+        // ==========================================
+        // CARREGAMENTO DO DATASET FIXO
+        // ==========================================
+        function loadDataset(key) {
+            const data = FIXED_DATASETS[key];
+            if (!data) return;
+
+            currentPoints = data.points.map(p => ({ ...p }));
+            document.getElementById('datasetDesc').textContent = data.desc;
+
+            methods.forEach(m => {
+                const res = buildDivisiveTreeForMethod(m);
+                trees[m] = res.root;
+                histories[m] = res.history;
+            });
+
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Dataset '${data.title}' carregado com ${currentPoints.length} pontos. Árvores divisivas calculadas.`);
+        }
+
+        function setLog(msg) {
+            document.getElementById('logText').textContent = msg;
+        }
+
+        // ==========================================
+        // EVENTOS E INTERATIVIDADE
+        // ==========================================
+        document.getElementById('viewModeSelect').addEventListener('change', (e) => {
+            setViewMode(e.target.value);
+        });
+
+        document.querySelectorAll('#viewModeTabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.getAttribute('data-view');
+                if (view) setViewMode(view);
+            });
+        });
+
+        document.getElementById('datasetSelect').addEventListener('change', (e) => {
+            loadDataset(e.target.value);
+        });
+
+        document.getElementById('kSelect').addEventListener('change', (e) => {
+            selectedK = parseInt(e.target.value);
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Corte alvo alterado para k = ${selectedK} clusters.`);
+        });
+
+        function advanceAll() {
+            const totalSteps = currentPoints.length - 1;
+            if (globalStepIndex === -1) {
+                globalStepIndex = 1;
+            } else if (globalStepIndex < totalSteps) {
+                globalStepIndex++;
+            } else {
+                setLog("Todas as divisões já foram concluídas! Todos os pontos já estão em clusters unitários (folhas).");
+                return;
+            }
+            updateAllViews();
+            const dHist = histories['diana'][globalStepIndex];
+            let desc = '';
+            if (dHist && dHist.splitDetails && dHist.splitDetails.seed !== undefined) {
+                const sIdx = dHist.splitDetails.seed;
+                const sName = currentPoints[sIdx].label || `P${sIdx}`;
+                desc = ` | DIANA escolheu ${sName} como semente dissidente`;
+            }
+            setLog(`Passo ${globalStepIndex}/${totalSteps}: Partição para k = ${globalStepIndex + 1} clusters${desc}`);
+        }
+
+        function goBackAll() {
+            const totalSteps = currentPoints.length - 1;
+            if (globalStepIndex === -1) {
+                globalStepIndex = totalSteps - 1;
+            } else if (globalStepIndex > 0) {
+                globalStepIndex--;
+            } else {
+                setLog("Você já está no passo 0 (todos os pontos reunidos no macro-cluster raiz k=1).");
+                return;
+            }
+            updateAllViews();
+            setLog(`Retornado para a divisão ${globalStepIndex}/${totalSteps} (k = ${globalStepIndex + 1})`);
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', advanceAll);
+        document.getElementById('prevBtn').addEventListener('click', goBackAll);
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            globalStepIndex = -1;
+            updateAllViews();
+            setLog(`Visualização redefinida para o corte estático em k = ${selectedK}.`);
+        });
+
+        // Atalhos de Teclado
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                e.preventDefault();
+                advanceAll();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                goBackAll();
+            } else if (e.key === '1') {
+                e.preventDefault();
+                setViewMode('diana');
+            } else if (e.key === '2') {
+                e.preventDefault();
+                setViewMode('bisecting');
+            } else if (e.key === '3') {
+                e.preventDefault();
+                setViewMode('furthest');
+            } else if (e.key === '4') {
+                e.preventDefault();
+                setViewMode('pca');
+            } else if (e.key === '0' || e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                setViewMode('all');
+            }
+        });
+
+        // Redimensionamento Dinâmico
+        function resizeAllCanvases() {
+            methods.forEach(m => {
+                const card = document.getElementById(`card-${m}`);
+                const isVisible = (currentViewMode === 'all' || currentViewMode === m);
+                if (card) {
+                    card.style.display = isVisible ? 'flex' : 'none';
+                }
+                if (isVisible) {
+                    const cv = document.getElementById(`canvas-${m}`);
+                    const parent = cv.parentElement;
+                    if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
+                        cv.width = parent.clientWidth;
+                        cv.height = parent.clientHeight;
+                    }
+                }
+            });
+            updateAllViews();
+        }
+
+        window.addEventListener('resize', resizeAllCanvases);
+
+        // Inicialização
+        setTimeout(() => {
+            setViewMode('all');
+            loadDataset('chaining');
+        }, 100);
+
+    </script>
+</body>
+</html>
